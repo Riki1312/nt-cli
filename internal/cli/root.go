@@ -8,6 +8,11 @@ func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "nt",
 		Short: "A CLI for Notion, powered by MCP",
+		Long: `A CLI for Notion, powered by MCP.
+
+All output is JSON to stdout. Errors are JSON to stderr.
+IDs can be passed with or without dashes (e.g. abc123 or a1b2-c3d4-...).
+Content arguments accept "-" to read from stdin.`,
 	}
 
 	root.SilenceErrors = true
