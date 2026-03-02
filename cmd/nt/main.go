@@ -1,11 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"github.com/Riki1312/nt-cli/internal/cli"
+	"github.com/Riki1312/nt-cli/internal/output"
 )
 
 func main() {
-	fmt.Fprintln(os.Stderr, "nt: not yet implemented")
-	os.Exit(1)
+	cmd := cli.NewRootCmd()
+	if err := cmd.Execute(); err != nil {
+		output.HandleError(err)
+	}
 }

@@ -19,3 +19,11 @@ See: `cli-design.md` (Command Structure section)
 All output is JSON. Filters and sorts use Notion's native JSON format instead of a custom DSL. Agents can generate JSON natively; no parser to build or maintain.
 
 See: `cli-design.md` (Output Format section)
+
+## 2026-03-02: Append uses read-then-replace strategy
+
+The `nt page <id> append` command reads the page first, concatenates existing content with new content, then calls `replace_content`. The alternative (`insert_content_after` with `selection_with_ellipsis`) requires exact text matching against page content, which is fragile and fails when using "..." alone as the selection pattern.
+
+## 2026-03-02: Database query not supported
+
+The `notion-query-data-sources` tool is not available on Notion's hosted MCP server at `mcp.notion.com/mcp`. Only 12 tools are exposed: search, fetch, create-pages, update-page, move-pages, duplicate-page, create-database, update-data-source, create-comment, get-comments, get-teams, get-users. Database row querying is only available through Claude's internal MCP integration, not the public hosted endpoint.
