@@ -42,7 +42,7 @@ func QueryResults(result *mcp.ToolResult) (any, error) {
 }
 
 // DBRead converts a notion-fetch result for a database into a compact JSON object.
-func DBRead(result *mcp.ToolResult, dbID string) (any, error) {
+func DBRead(result *mcp.ToolResult, dbID string) (*Database, error) {
 	text := result.TextContent()
 	if text == "" {
 		return nil, fmt.Errorf("empty database response")

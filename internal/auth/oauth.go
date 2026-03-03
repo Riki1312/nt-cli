@@ -14,12 +14,36 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Riki1312/nt-cli/internal/mcp"
 )
 
-const (
-	mcpEndpoint  = "https://mcp.notion.com/mcp"
-	loginTimeout = 5 * time.Minute
-)
+const loginTimeout = 5 * time.Minute
+
+// tokenResponse is the JSON structure returned by the OAuth token endpoint.
+type tokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+// tokenFromResponse converts a token endpoint response into a Token.
+// If the response has no refresh token, fallbackRefresh is used.
+func tokenFromResponse(resp *tokenResponse, fallbackRefresh string) *Token {
+	tok := &Token{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		TokenType:    resp.TokenType,
+	}
+	if tok.RefreshToken == "" {
+		tok.RefreshToken = fallbackRefresh
+	}
+	if resp.ExpiresIn > 0 {
+		tok.Expiry = time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second)
+	}
+	return tok
+}
 
 // ServerMetadata holds the discovered OAuth endpoints.
 type ServerMetadata struct {
@@ -115,7 +139,7 @@ func Login(ctx context.Context) error {
 func discoverMetadata(ctx context.Context) (*ServerMetadata, error) {
 	// Step 1: Get protected resource metadata
 	// RFC 9728: insert /.well-known/oauth-protected-resource between host and path
-	prURL, err := buildWellKnownURL(mcpEndpoint, "oauth-protected-resource")
+	prURL, err := buildWellKnownURL(mcp.NotionMCPEndpoint, "oauth-protected-resource")
 	if err != nil {
 		return nil, fmt.Errorf("building discovery URL: %w", err)
 	}
@@ -250,26 +274,12 @@ func exchangeCode(ctx context.Context, metadata *ServerMetadata, clientID, code,
 		return nil, fmt.Errorf("token exchange failed (HTTP %d): %s", resp.StatusCode, string(respBody))
 	}
 
-	var tokenResp struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-		TokenType    string `json:"token_type"`
-		ExpiresIn    int    `json:"expires_in"`
-	}
+	var tokenResp tokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("parsing token response: %w", err)
 	}
 
-	tok := &Token{
-		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: tokenResp.RefreshToken,
-		TokenType:    tokenResp.TokenType,
-	}
-	if tokenResp.ExpiresIn > 0 {
-		tok.Expiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
-	}
-
-	return tok, nil
+	return tokenFromResponse(&tokenResp, ""), nil
 }
 
 // RefreshToken attempts to refresh the access token using the refresh token.
@@ -311,29 +321,13 @@ func RefreshToken(ctx context.Context, tok *Token) (*Token, error) {
 		return nil, fmt.Errorf("token refresh failed (HTTP %d): %s; run 'nt login'", resp.StatusCode, string(respBody))
 	}
 
-	var tokenResp struct {
-		AccessToken  string `json:"access_token"`
-		RefreshToken string `json:"refresh_token"`
-		TokenType    string `json:"token_type"`
-		ExpiresIn    int    `json:"expires_in"`
-	}
+	var tokenResp tokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, fmt.Errorf("parsing refresh response: %w", err)
 	}
 
-	newTok := &Token{
-		AccessToken: tokenResp.AccessToken,
-		TokenType:   tokenResp.TokenType,
-	}
 	// Use new refresh token if provided (rotation), otherwise keep the old one
-	if tokenResp.RefreshToken != "" {
-		newTok.RefreshToken = tokenResp.RefreshToken
-	} else {
-		newTok.RefreshToken = tok.RefreshToken
-	}
-	if tokenResp.ExpiresIn > 0 {
-		newTok.Expiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
-	}
+	newTok := tokenFromResponse(&tokenResp, tok.RefreshToken)
 
 	if err := SaveToken(newTok); err != nil {
 		return nil, fmt.Errorf("saving refreshed token: %w", err)

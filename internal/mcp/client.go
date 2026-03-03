@@ -8,6 +8,9 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const clientName = "nt-cli"
+const clientVersion = "0.1.0"
+
 // ToolResult wraps the MCP tool call result for easier consumption.
 type ToolResult struct {
 	Content []ContentItem `json:"content"`
@@ -19,11 +22,22 @@ type ContentItem struct {
 	Text string `json:"text,omitempty"`
 }
 
-// CallTool connects to the Notion MCP server, calls the named tool with the
-// given arguments, and returns the result. The session is closed before returning.
-func CallTool(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, error) {
+// TextContent extracts the first text content from a ToolResult.
+// Returns empty string if no text content is found.
+func (r *ToolResult) TextContent() string {
+	for _, c := range r.Content {
+		if c.Type == "text" {
+			return c.Text
+		}
+	}
+	return ""
+}
+
+// withSession connects to the Notion MCP server and calls fn with the session.
+// The session is closed after fn returns.
+func withSession(ctx context.Context, accessToken string, fn func(*sdkmcp.ClientSession) error) error {
 	client := sdkmcp.NewClient(
-		&sdkmcp.Implementation{Name: "nt-cli", Version: "0.1.0"},
+		&sdkmcp.Implementation{Name: clientName, Version: clientVersion},
 		nil,
 	)
 
@@ -34,23 +48,32 @@ func CallTool(ctx context.Context, accessToken, toolName string, args map[string
 
 	session, err := client.Connect(ctx, transport, nil)
 	if err != nil {
-		return nil, fmt.Errorf("connecting to Notion MCP: %w", err)
+		return fmt.Errorf("connecting to Notion MCP: %w", err)
 	}
 	defer session.Close()
 
-	result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name:      toolName,
-		Arguments: args,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("calling tool %s: %w", toolName, err)
-	}
-
-	return convertResult(result)
+	return fn(session)
 }
 
-// CallToolRaw is like CallTool but returns the raw MCP result as JSON bytes.
-// The ToolResult is also returned so callers can check IsError.
+// CallTool connects to the Notion MCP server, calls the named tool with the
+// given arguments, and returns the result.
+func CallTool(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, error) {
+	var tr *ToolResult
+	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
+			Name:      toolName,
+			Arguments: args,
+		})
+		if err != nil {
+			return fmt.Errorf("calling tool %s: %w", toolName, err)
+		}
+		tr, err = convertResult(result)
+		return err
+	})
+	return tr, err
+}
+
+// CallToolRaw is like CallTool but also returns the raw MCP result as JSON bytes.
 func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, json.RawMessage, error) {
 	result, err := CallTool(ctx, accessToken, toolName, args)
 	if err != nil {
@@ -66,32 +89,18 @@ func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[str
 
 // ListTools connects to the Notion MCP server and returns the available tool names.
 func ListTools(ctx context.Context, accessToken string) ([]string, error) {
-	client := sdkmcp.NewClient(
-		&sdkmcp.Implementation{Name: "nt-cli", Version: "0.1.0"},
-		nil,
-	)
-
-	transport := &sdkmcp.StreamableClientTransport{
-		Endpoint:   NotionMCPEndpoint,
-		HTTPClient: NewAuthenticatedHTTPClient(accessToken),
-	}
-
-	session, err := client.Connect(ctx, transport, nil)
-	if err != nil {
-		return nil, fmt.Errorf("connecting to Notion MCP: %w", err)
-	}
-	defer session.Close()
-
-	result, err := session.ListTools(ctx, &sdkmcp.ListToolsParams{})
-	if err != nil {
-		return nil, fmt.Errorf("listing tools: %w", err)
-	}
-
 	var names []string
-	for _, t := range result.Tools {
-		names = append(names, t.Name)
-	}
-	return names, nil
+	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+		result, err := session.ListTools(ctx, &sdkmcp.ListToolsParams{})
+		if err != nil {
+			return fmt.Errorf("listing tools: %w", err)
+		}
+		for _, t := range result.Tools {
+			names = append(names, t.Name)
+		}
+		return nil
+	})
+	return names, err
 }
 
 func convertResult(result *sdkmcp.CallToolResult) (*ToolResult, error) {
@@ -103,21 +112,12 @@ func convertResult(result *sdkmcp.CallToolResult) (*ToolResult, error) {
 		case *sdkmcp.TextContent:
 			tr.Content = append(tr.Content, ContentItem{Type: "text", Text: v.Text})
 		default:
-			// Marshal unknown content types as JSON text
-			data, _ := json.Marshal(v)
+			data, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("marshaling content: %w", err)
+			}
 			tr.Content = append(tr.Content, ContentItem{Type: "unknown", Text: string(data)})
 		}
 	}
 	return tr, nil
-}
-
-// TextContent extracts the first text content from a ToolResult.
-// Returns empty string if no text content is found.
-func (r *ToolResult) TextContent() string {
-	for _, c := range r.Content {
-		if c.Type == "text" {
-			return c.Text
-		}
-	}
-	return ""
 }

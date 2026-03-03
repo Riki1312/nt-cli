@@ -85,8 +85,8 @@ func runPageRead(cmd *cobra.Command, pageID string) error {
 	if err != nil {
 		return err
 	}
-	if p, ok := page.(*transform.Page); ok && p.Hint != "" {
-		output.Hint(p.Hint)
+	if page.Hint != "" {
+		output.Hint(page.Hint)
 	}
 	return output.Print(page)
 }

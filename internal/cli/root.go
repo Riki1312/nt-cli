@@ -19,7 +19,6 @@ Content arguments accept "-" to read from stdin.`,
 	root.SilenceUsage = true
 
 	root.PersistentFlags().Bool("raw", false, "print raw MCP JSON-RPC response")
-	root.PersistentFlags().Bool("verbose", false, "print request/response details to stderr")
 
 	root.AddCommand(newLoginCmd())
 	root.AddCommand(newLogoutCmd())

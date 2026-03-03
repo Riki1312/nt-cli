@@ -28,7 +28,7 @@ type fetchResponse struct {
 }
 
 // PageRead converts a notion-fetch MCP tool result into a compact page JSON object.
-func PageRead(result *mcp.ToolResult, pageID string) (any, error) {
+func PageRead(result *mcp.ToolResult, pageID string) (*Page, error) {
 	text := result.TextContent()
 	if text == "" {
 		return nil, fmt.Errorf("empty page response")
