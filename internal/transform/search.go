@@ -20,7 +20,7 @@ type searchResponse struct {
 }
 
 // SearchResults converts a notion-search MCP tool result into a compact JSON array.
-func SearchResults(result *mcp.ToolResult) (any, error) {
+func SearchResults(result *mcp.ToolResult) ([]SearchResult, error) {
 	text := result.TextContent()
 	if text == "" {
 		return []SearchResult{}, nil
@@ -35,4 +35,22 @@ func SearchResults(result *mcp.ToolResult) (any, error) {
 		return []SearchResult{}, nil
 	}
 	return resp.Results, nil
+}
+
+// FilterSearchResults filters results by type and applies a limit.
+// An empty typeFilter matches all types. A limit of 0 means no limit.
+func FilterSearchResults(results []SearchResult, typeFilter string, limit int) []SearchResult {
+	filtered := results
+	if typeFilter != "" {
+		filtered = make([]SearchResult, 0, len(results))
+		for _, r := range results {
+			if r.Type == typeFilter {
+				filtered = append(filtered, r)
+			}
+		}
+	}
+	if limit > 0 && len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+	return filtered
 }

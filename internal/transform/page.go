@@ -14,6 +14,7 @@ type Page struct {
 	URL        string            `json:"url,omitempty"`
 	Properties map[string]any    `json:"properties,omitempty"`
 	Content    string            `json:"content"`
+	Hint       string            `json:"hint,omitempty"`
 }
 
 // fetchResponse matches the JSON structure returned by notion-fetch.
@@ -43,6 +44,10 @@ func PageRead(result *mcp.ToolResult, pageID string) (any, error) {
 		ID:    pageID,
 		Title: resp.Title,
 		URL:   resp.URL,
+	}
+
+	if resp.Metadata.Type == "database" {
+		page.Hint = "this is a database; use: nt db " + pageID + " read"
 	}
 
 	// Extract properties from <properties> tags in the text

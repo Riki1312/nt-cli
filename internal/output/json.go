@@ -11,3 +11,9 @@ func Print(v any) error {
 	enc.SetEscapeHTML(false)
 	return enc.Encode(v)
 }
+
+// Hint writes a JSON hint message to stderr. Hints are informational and do not
+// affect the exit code or stdout output.
+func Hint(msg string) {
+	json.NewEncoder(os.Stderr).Encode(map[string]string{"hint": msg})
+}

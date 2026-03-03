@@ -49,6 +49,7 @@ The `<id>` is the database ID for `read`, or the data source ID (collection ID) 
 
 ```bash
 nt db <id> read                                # fetch database schema and info
+nt db <id> query '<sql>' [--params ...]        # query rows with SQL (use _ as table name)
 nt db <id> create --props '<json>' [content]   # create a row
 nt db <id> update [--title "..."] [--schema '<sql>']  # update database schema
 ```
@@ -58,15 +59,14 @@ nt db <id> update [--title "..."] [--schema '<sql>']  # update database schema
 | CLI | MCP tool | Notes |
 |-----|----------|-------|
 | `read` | `notion-fetch` | Returns schema, SQLite DDL, templates, views |
+| `query` | `notion-query-data-sources` | SQL mode; use `_` as table name placeholder |
 | `create` | `notion-create-pages` | `parent: {"data_source_id": "<id>"}` |
 | `update` | `notion-update-data-source` | Uses SQL DDL statements for schema changes |
-
-> **Note:** Database row querying (`notion-query-data-sources`) is not available on Notion's hosted MCP server. Use `notion-fetch` to read database schema and structure.
 
 ## Workspace Commands
 
 ```bash
-nt search '<query>'               # search across workspace
+nt search '<query>' [--type page] [--limit 10]  # search across workspace
 nt create --title "Page title"    # create a standalone page (workspace root)
 nt login                          # OAuth flow (opens browser)
 nt logout                         # remove stored credentials
@@ -165,6 +165,12 @@ nt search "meeting notes" | jq -r '.[].title'
 
 # create a page with content from stdin
 echo "# New Page\n\nContent here" | nt page <parent-id> create --title "My Page" -
+
+# query a database (use _ as the table name)
+nt db <data-source-id> query "SELECT Name, Status FROM _ WHERE Status = 'Done'"
+
+# query with parameterized values
+nt db <data-source-id> query "SELECT * FROM _ WHERE Status = ?" --params "In Progress"
 ```
 
 ## Global Flags

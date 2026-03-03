@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/mcp"
@@ -17,11 +18,13 @@ func newDBCmd() *cobra.Command {
 		Short: "Operate on a Notion database",
 		Long: `Operate on a Notion database.
 
-The <id> is the database ID for read, or the data source ID (collection ID)
-for create and update. Use 'db <id> read' to discover data source IDs.
+The <id> is the database ID for read and query, or the data source ID
+(collection ID) for create and update. Use 'db <id> read' to discover
+data source IDs.
 
 Verbs:
   read        Fetch database schema and info
+  query       Query rows with SQL (e.g. nt db <id> query "SELECT * FROM t LIMIT 10")
   create      Create a row (--props required, optional content argument)
   update      Update database schema or title (--title, --schema flags)`,
 		Args: cobra.MinimumNArgs(2),
@@ -33,18 +36,21 @@ Verbs:
 			switch verb {
 			case "read":
 				return runDBRead(cmd, dbID)
+			case "query":
+				return runDBQuery(cmd, dbID, rest)
 			case "create":
 				return runDBCreate(cmd, dbID, rest)
 			case "update":
 				return runDBUpdate(cmd, dbID)
 			default:
-				return fmt.Errorf("unknown verb %q; expected: read, create, update", verb)
+				return fmt.Errorf("unknown verb %q; expected: read, query, create, update", verb)
 			}
 		},
 	}
 	cmd.Flags().String("props", "", "JSON properties for create verb")
 	cmd.Flags().String("title", "", "new title for update verb")
 	cmd.Flags().String("schema", "", "SQL DDL statements for update verb")
+	cmd.Flags().StringSlice("params", nil, "SQL query parameters for query verb (repeatable)")
 	return cmd
 }
 
@@ -81,6 +87,65 @@ func runDBRead(cmd *cobra.Command, dbID string) error {
 		return err
 	}
 	return output.Print(db)
+}
+
+func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("query requires a SQL query argument")
+	}
+
+	tok, err := auth.EnsureValidToken(cmd.Context())
+	if err != nil {
+		return output.AuthError(err.Error())
+	}
+
+	dataSourceURL := "collection://" + dbID
+	query, err := readContentArg(args[0])
+	if err != nil {
+		return err
+	}
+
+	// Replace the placeholder "_" with the full data source URL for convenience.
+	// Users can also write the full collection:// URL directly in their SQL.
+	query = strings.ReplaceAll(query, "FROM _", fmt.Sprintf("FROM %q", dataSourceURL))
+	query = strings.ReplaceAll(query, "from _", fmt.Sprintf("FROM %q", dataSourceURL))
+	query = strings.ReplaceAll(query, "JOIN _", fmt.Sprintf("JOIN %q", dataSourceURL))
+	query = strings.ReplaceAll(query, "join _", fmt.Sprintf("JOIN %q", dataSourceURL))
+
+	toolArgs := map[string]any{
+		"data": map[string]any{
+			"data_source_urls": []string{dataSourceURL},
+			"query":            query,
+		},
+	}
+
+	params, _ := cmd.Flags().GetStringSlice("params")
+	if len(params) > 0 {
+		toolArgs["data"].(map[string]any)["params"] = params
+	}
+
+	raw, _ := cmd.Flags().GetBool("raw")
+	if raw {
+		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
+		if err != nil {
+			return err
+		}
+		return output.Print(json.RawMessage(data))
+	}
+
+	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
+	if err != nil {
+		return err
+	}
+	if result.IsError {
+		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
+	}
+
+	rows, err := transform.QueryResults(result)
+	if err != nil {
+		return err
+	}
+	return output.Print(rows)
 }
 
 func runDBCreate(cmd *cobra.Command, dbID string, args []string) error {

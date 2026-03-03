@@ -19,11 +19,12 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 
 ### Database commands (`nt db <id> <verb>`)
 - `read` - fetch database schema, SQLite DDL, templates, views
+- `query '<sql>'` - query rows with SQL; use `_` as table name, `--params` for parameterized queries
 - `create --props '<json>'` - create a row (uses data source ID)
 - `update --title/--schema` - update database schema
 
 ### Workspace commands
-- `search '<query>'` - workspace search
+- `search '<query>'` - workspace search (supports `--limit`, `--type`)
 - `create --title "..."` - standalone page at workspace root
 - `login` / `logout` - OAuth
 - `whoami` / `users` / `teams` - user and team info
@@ -35,7 +36,7 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 
 ## Key Limitations
 
-- `notion-query-data-sources` is NOT available on the hosted MCP server; database row queries cannot be done
+- `nt page <id> read` on a database returns empty content but includes a hint to use `nt db` instead
 - `append` uses read-then-replace (not `insert_content_after`) due to selection matching fragility
 - `replace_content` rejects writes that delete child pages (safety feature from Notion)
 
@@ -43,10 +44,9 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 
 - Add tests (golden file tests for transforms, unit tests for auth)
 - Error code mapping (not found, rate limited, permission denied -> exit codes)
-- `--limit` and `--cursor` pagination flags
+- `--cursor` pagination flag for search
 - `set` stdin support for properties JSON
 - `write --replace` for targeted section replacement
-- Commit the implementation
 
 ## Key Files
 

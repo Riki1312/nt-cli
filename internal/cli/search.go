@@ -11,13 +11,15 @@ import (
 )
 
 func newSearchCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search across your Notion workspace",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := args[0]
 			raw, _ := cmd.Flags().GetBool("raw")
+			limit, _ := cmd.Flags().GetInt("limit")
+			typeFilter, _ := cmd.Flags().GetString("type")
 
 			tok, err := auth.EnsureValidToken(cmd.Context())
 			if err != nil {
@@ -49,7 +51,12 @@ func newSearchCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return output.Print(results)
+
+			filtered := transform.FilterSearchResults(results, typeFilter, limit)
+			return output.Print(filtered)
 		},
 	}
+	cmd.Flags().Int("limit", 0, "maximum number of results to return")
+	cmd.Flags().String("type", "", "filter results by type (e.g. page, database)")
+	return cmd
 }
