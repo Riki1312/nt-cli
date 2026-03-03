@@ -1,11 +1,9 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
-	"github.com/Riki1312/nt-cli/internal/mcp"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
@@ -45,19 +43,12 @@ func newCreateCmd() *cobra.Command {
 
 			raw, _ := cmd.Flags().GetBool("raw")
 			if raw {
-				data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
-				if err != nil {
-					return err
-				}
-				return output.Print(json.RawMessage(data))
+				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 			}
 
-			result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 			if err != nil {
 				return err
-			}
-			if result.IsError {
-				return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 			}
 
 			created, err := transform.CreatedPages(result)

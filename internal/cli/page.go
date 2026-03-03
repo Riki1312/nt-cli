@@ -3,8 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/mcp"
@@ -72,25 +70,15 @@ func runPageRead(cmd *cobra.Command, pageID string) error {
 		return output.AuthError(err.Error())
 	}
 
+	fetchArgs := map[string]any{"id": pageID}
+
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
-			"id": pageID,
-		})
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
-		"id": pageID,
-	})
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
 	if err != nil {
 		return err
-	}
-
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 	}
 
 	page, err := transform.PageRead(result, pageID)
@@ -113,8 +101,13 @@ func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
 		return output.AuthError(err.Error())
 	}
 
+	propsJSON, err := readContentArg(args[0])
+	if err != nil {
+		return err
+	}
+
 	var properties map[string]any
-	if err := json.Unmarshal([]byte(args[0]), &properties); err != nil {
+	if err := json.Unmarshal([]byte(propsJSON), &properties); err != nil {
 		return fmt.Errorf("invalid JSON properties: %w", err)
 	}
 
@@ -126,22 +119,12 @@ func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": pageID, "ok": true})
 }
 
@@ -160,8 +143,6 @@ func runPageWrite(cmd *cobra.Command, pageID string, args []string) error {
 		return err
 	}
 
-	// TODO: support --replace '<old>' '<new>' for replace_content_range
-
 	toolArgs := map[string]any{
 		"page_id": pageID,
 		"command": "replace_content",
@@ -170,22 +151,12 @@ func runPageWrite(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": pageID, "ok": true})
 }
 
@@ -231,22 +202,12 @@ func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": pageID, "ok": true})
 }
 
@@ -281,19 +242,12 @@ func runPageCreate(cmd *cobra.Command, parentID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 	if err != nil {
 		return err
-	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 	}
 
 	created, err := transform.CreatedPages(result)
@@ -321,21 +275,12 @@ func runPageMove(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs); err != nil {
 		return err
 	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": pageID, "ok": true})
 }
 
@@ -351,21 +296,13 @@ func runPageDuplicate(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
 	if err != nil {
 		return err
 	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(transform.DuplicateResult(result, pageID))
 }
 
@@ -382,21 +319,13 @@ func runPageComments(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
 	if err != nil {
 		return err
 	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(transform.Comments(result))
 }
 
@@ -424,32 +353,11 @@ func runPageComment(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs); err != nil {
 		return err
 	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": pageID, "ok": true})
-}
-
-// readContentArg reads content from the argument or from stdin if the argument is "-".
-func readContentArg(arg string) (string, error) {
-	if arg == "-" {
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return "", fmt.Errorf("reading from stdin: %w", err)
-		}
-		return string(data), nil
-	}
-	return arg, nil
 }

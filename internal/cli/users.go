@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
-	"github.com/Riki1312/nt-cli/internal/mcp"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -20,25 +19,16 @@ func newWhoamiCmd() *cobra.Command {
 				return output.AuthError(err.Error())
 			}
 
-			toolArgs := map[string]any{
-				"user_id": "self",
-			}
+			toolArgs := map[string]any{"user_id": "self"}
 
 			raw, _ := cmd.Flags().GetBool("raw")
 			if raw {
-				data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-get-users", toolArgs)
-				if err != nil {
-					return err
-				}
-				return output.Print(json.RawMessage(data))
+				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-get-users", toolArgs)
 			}
 
-			result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-get-users", toolArgs)
+			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-get-users", toolArgs)
 			if err != nil {
 				return err
-			}
-			if result.IsError {
-				return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 			}
 
 			// Return the raw text as-is since user data format varies
@@ -60,19 +50,12 @@ func newUsersCmd() *cobra.Command {
 
 			raw, _ := cmd.Flags().GetBool("raw")
 			if raw {
-				data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-get-users", map[string]any{})
-				if err != nil {
-					return err
-				}
-				return output.Print(json.RawMessage(data))
+				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-get-users", map[string]any{})
 			}
 
-			result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-get-users", map[string]any{})
+			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-get-users", map[string]any{})
 			if err != nil {
 				return err
-			}
-			if result.IsError {
-				return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 			}
 
 			return output.Print(json.RawMessage(result.TextContent()))
@@ -93,19 +76,12 @@ func newTeamsCmd() *cobra.Command {
 
 			raw, _ := cmd.Flags().GetBool("raw")
 			if raw {
-				data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-get-teams", map[string]any{})
-				if err != nil {
-					return err
-				}
-				return output.Print(json.RawMessage(data))
+				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-get-teams", map[string]any{})
 			}
 
-			result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-get-teams", map[string]any{})
+			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-get-teams", map[string]any{})
 			if err != nil {
 				return err
-			}
-			if result.IsError {
-				return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 			}
 
 			return output.Print(json.RawMessage(result.TextContent()))

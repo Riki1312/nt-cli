@@ -49,37 +49,19 @@ func CallTool(ctx context.Context, accessToken, toolName string, args map[string
 	return convertResult(result)
 }
 
-// CallToolRaw is like CallTool but returns the raw SDK result as JSON bytes.
-func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[string]any) (json.RawMessage, error) {
-	client := sdkmcp.NewClient(
-		&sdkmcp.Implementation{Name: "nt-cli", Version: "0.1.0"},
-		nil,
-	)
-
-	transport := &sdkmcp.StreamableClientTransport{
-		Endpoint:   NotionMCPEndpoint,
-		HTTPClient: NewAuthenticatedHTTPClient(accessToken),
-	}
-
-	session, err := client.Connect(ctx, transport, nil)
+// CallToolRaw is like CallTool but returns the raw MCP result as JSON bytes.
+// The ToolResult is also returned so callers can check IsError.
+func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, json.RawMessage, error) {
+	result, err := CallTool(ctx, accessToken, toolName, args)
 	if err != nil {
-		return nil, fmt.Errorf("connecting to Notion MCP: %w", err)
-	}
-	defer session.Close()
-
-	result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name:      toolName,
-		Arguments: args,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("calling tool %s: %w", toolName, err)
+		return nil, nil, err
 	}
 
 	raw, err := json.Marshal(result)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling result: %w", err)
+		return nil, nil, fmt.Errorf("marshaling result: %w", err)
 	}
-	return raw, nil
+	return result, raw, nil
 }
 
 // ListTools connects to the Notion MCP server and returns the available tool names.

@@ -10,7 +10,7 @@ import (
 func Comments(result *mcp.ToolResult) any {
 	text := result.TextContent()
 	if text == "" {
-		return map[string]any{"comments": []any{}}
+		return map[string]any{"comments": ""}
 	}
-	return map[string]any{"comments_raw": text}
+	return map[string]any{"comments": text}
 }

@@ -24,6 +24,7 @@ type createResponse struct {
 }
 
 // CreatedPages extracts page IDs and URLs from a notion-create-pages result.
+// Always returns a slice of createdPage for a consistent JSON shape.
 func CreatedPages(result *mcp.ToolResult) (any, error) {
 	text := result.TextContent()
 	if text == "" {
@@ -32,10 +33,7 @@ func CreatedPages(result *mcp.ToolResult) (any, error) {
 
 	var resp createResponse
 	if err := json.Unmarshal([]byte(text), &resp); err == nil && len(resp.Pages) > 0 {
-		if len(resp.Pages) == 1 {
-			return createdPage{ID: resp.Pages[0].ID, URL: resp.Pages[0].URL, OK: true}, nil
-		}
-		var pages []createdPage
+		pages := make([]createdPage, 0, len(resp.Pages))
 		for _, p := range resp.Pages {
 			pages = append(pages, createdPage{ID: p.ID, URL: p.URL, OK: true})
 		}
@@ -108,25 +106,20 @@ func parsePageTags(text string) (any, error) {
 	if len(pages) == 0 {
 		return nil, fmt.Errorf("could not parse create response")
 	}
-	if len(pages) == 1 {
-		return pages[0], nil
-	}
 	return pages, nil
 }
 
 func extractIDFromURL(u string) string {
 	parts := strings.Split(u, "/")
-	if len(parts) == 0 {
-		return ""
-	}
 	last := parts[len(parts)-1]
-	// The ID might have a slug prefix separated by -
+	// The ID might have a slug prefix separated by - (e.g. "My-Page-abc123def456...")
 	if idx := strings.LastIndex(last, "-"); idx >= 0 && len(last)-idx-1 == 32 {
 		return last[idx+1:]
 	}
+	// Bare UUID with dashes (e.g. "abcd1234-5678-...")
 	clean := strings.ReplaceAll(last, "-", "")
 	if len(clean) == 32 {
-		return last
+		return clean
 	}
 	return last
 }

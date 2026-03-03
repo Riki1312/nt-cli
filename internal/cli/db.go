@@ -3,10 +3,9 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
-	"github.com/Riki1312/nt-cli/internal/mcp"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
@@ -24,7 +23,7 @@ data source IDs.
 
 Verbs:
   read        Fetch database schema and info
-  query       Query rows with SQL (e.g. nt db <id> query "SELECT * FROM t LIMIT 10")
+  query       Query rows with SQL (e.g. nt db <id> query "SELECT * FROM _ LIMIT 10")
   create      Create a row (--props required, optional content argument)
   update      Update database schema or title (--title, --schema flags)`,
 		Args: cobra.MinimumNArgs(2),
@@ -55,31 +54,21 @@ Verbs:
 }
 
 func runDBRead(cmd *cobra.Command, dbID string) error {
-	raw, _ := cmd.Flags().GetBool("raw")
-
 	tok, err := auth.EnsureValidToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
 
+	fetchArgs := map[string]any{"id": dbID}
+
+	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
-			"id": dbID,
-		})
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
-		"id": dbID,
-	})
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
 	if err != nil {
 		return err
-	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 	}
 
 	db, err := transform.DBRead(result, dbID)
@@ -88,6 +77,8 @@ func runDBRead(cmd *cobra.Command, dbID string) error {
 	}
 	return output.Print(db)
 }
+
+var tablePlaceholder = regexp.MustCompile(`(?i)\b(FROM|JOIN)\s+_\b`)
 
 func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
 	if len(args) < 1 {
@@ -106,39 +97,31 @@ func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
 	}
 
 	// Replace the placeholder "_" with the full data source URL for convenience.
+	// Case-insensitive to handle FROM/from/From/JOIN/join/Join etc.
 	// Users can also write the full collection:// URL directly in their SQL.
-	query = strings.ReplaceAll(query, "FROM _", fmt.Sprintf("FROM %q", dataSourceURL))
-	query = strings.ReplaceAll(query, "from _", fmt.Sprintf("FROM %q", dataSourceURL))
-	query = strings.ReplaceAll(query, "JOIN _", fmt.Sprintf("JOIN %q", dataSourceURL))
-	query = strings.ReplaceAll(query, "join _", fmt.Sprintf("JOIN %q", dataSourceURL))
+	quoted := fmt.Sprintf(`"%s"`, dataSourceURL)
+	query = tablePlaceholder.ReplaceAllString(query, "${1} "+quoted)
 
-	toolArgs := map[string]any{
-		"data": map[string]any{
-			"data_source_urls": []string{dataSourceURL},
-			"query":            query,
-		},
+	data := map[string]any{
+		"data_source_urls": []string{dataSourceURL},
+		"query":            query,
 	}
 
 	params, _ := cmd.Flags().GetStringSlice("params")
 	if len(params) > 0 {
-		toolArgs["data"].(map[string]any)["params"] = params
+		data["params"] = params
 	}
+
+	toolArgs := map[string]any{"data": data}
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
 	if err != nil {
 		return err
-	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 	}
 
 	rows, err := transform.QueryResults(result)
@@ -183,19 +166,12 @@ func runDBCreate(cmd *cobra.Command, dbID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
 	if err != nil {
 		return err
-	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 	}
 
 	created, err := transform.CreatedPages(result)
@@ -230,20 +206,11 @@ func runDBUpdate(cmd *cobra.Command, dbID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs)
-		if err != nil {
-			return err
-		}
-		return output.Print(json.RawMessage(data))
+		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs)
 	}
 
-	result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs)
-	if err != nil {
+	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs); err != nil {
 		return err
 	}
-	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
-	}
-
 	return output.Print(map[string]any{"id": dbID, "ok": true})
 }

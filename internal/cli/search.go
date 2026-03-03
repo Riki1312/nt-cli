@@ -1,10 +1,7 @@
 package cli
 
 import (
-	"encoding/json"
-
 	"github.com/Riki1312/nt-cli/internal/auth"
-	"github.com/Riki1312/nt-cli/internal/mcp"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
@@ -26,25 +23,15 @@ func newSearchCmd() *cobra.Command {
 				return output.AuthError(err.Error())
 			}
 
+			toolArgs := map[string]any{"query": query}
+
 			if raw {
-				data, err := mcp.CallToolRaw(cmd.Context(), tok.AccessToken, "notion-search", map[string]any{
-					"query": query,
-				})
-				if err != nil {
-					return err
-				}
-				return output.Print(json.RawMessage(data))
+				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-search", toolArgs)
 			}
 
-			result, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-search", map[string]any{
-				"query": query,
-			})
+			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-search", toolArgs)
 			if err != nil {
 				return err
-			}
-
-			if result.IsError {
-				return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
 			}
 
 			results, err := transform.SearchResults(result)
