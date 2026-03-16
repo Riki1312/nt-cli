@@ -4,10 +4,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(version, commit string) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "nt",
-		Short: "A CLI for Notion, powered by MCP",
+		Use:     "nt",
+		Short:   "A CLI for Notion, powered by MCP",
+		Version: version + " (" + commit + ")",
 		Long: `A CLI for Notion, powered by MCP.
 
 All output is JSON to stdout. Errors are JSON to stderr.
