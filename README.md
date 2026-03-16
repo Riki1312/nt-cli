@@ -66,11 +66,21 @@ nt CLI  --HTTPS / MCP Streamable HTTP-->  mcp.notion.com (Notion-hosted)
 
 ## Install
 
+### Homebrew (macOS and Linux)
+
+```bash
+brew install Riki1312/tap/nt
+```
+
+### From source
+
 ```bash
 go install github.com/Riki1312/nt-cli/cmd/nt@latest
 ```
 
-Then authenticate:
+Requires Go 1.24+.
+
+### Then authenticate
 
 ```bash
 nt login
@@ -87,8 +97,6 @@ make test     # run tests
 make lint     # go vet
 make install  # go install
 ```
-
-Requires Go 1.24+.
 
 ## License
 
