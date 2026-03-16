@@ -24,6 +24,7 @@ brews:
   - repository:
       owner: Riki1312
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/Riki1312/nt-cli"
     description: "CLI for interacting with Notion via its MCP server"
