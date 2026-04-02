@@ -20,7 +20,8 @@ Resource-scoped commands put the target ID front and center. This makes it trivi
 ```bash
 nt page <id> read                              # fetch page content and properties
 nt page <id> set '<json-properties>'           # update properties
-nt page <id> write '<markdown>'                # replace page content
+nt page <id> replace '<old>' '<new>'           # find-and-replace content
+nt page <id> replace --page '<markdown>'       # replace entire page content
 nt page <id> append '<markdown>'               # append to page content
 nt page <id> create --title "Child page"       # create a child page under this page
 nt page <id> move --to <target-id>             # move page to a new parent
@@ -35,7 +36,7 @@ nt page <id> comment '<text>'                  # add a comment
 |-----|----------|-------|
 | `read` | `notion-fetch` | Returns JSON with properties and Notion-flavored Markdown content |
 | `set` | `notion-update-page` | `command: "update_properties"`, flat params |
-| `write` | `notion-update-page` | `command: "replace_content"`. Rejects writes that delete child pages unless `allow_deleting_content: true` |
+| `replace` | `notion-update-page` | `command: "replace_content"`. With two args: targeted find-and-replace (`old_str` + `new_str`). With `--page`: full content replacement (`new_str` only). Rejects writes that delete child pages unless `allow_deleting_content: true` |
 | `append` | Read via `notion-fetch`, then `notion-update-page` | Reads current content, concatenates, then uses `command: "replace_content"` |
 | `create` | `notion-create-pages` | `parent: {"page_id": "<id>"}` |
 | `move` | `notion-move-pages` | |
@@ -110,7 +111,7 @@ All commands output JSON to stdout. No exceptions. Content fields contain Notion
 }
 ```
 
-**Write operations** (`set`, `write`, `append`, `create`, `move`, etc.) - confirmation with the affected resource:
+**Write operations** (`set`, `replace`, `append`, `create`, `move`, etc.) - confirmation with the affected resource:
 ```json
 {"id": "abc123", "ok": true}
 ```
@@ -142,10 +143,10 @@ Content arguments accept `-` to read from stdin. Useful for long content or pipi
 
 ```bash
 # write content from a file
-cat report.md | nt page <id> write -
+cat report.md | nt page <id> replace --page -
 
 # pipe content between commands
-nt page <source-id> read | jq -r '.content' | nt page <target-id> write -
+nt page <source-id> read | jq -r '.content' | nt page <target-id> replace --page -
 
 # properties from a file
 cat props.json | nt page <id> set -
@@ -158,7 +159,7 @@ cat props.json | nt page <id> set -
 nt page $(nt search "Q1 goals" | jq -r '.[0].id') read
 
 # copy content from one page to another
-nt page <src> read | jq -r '.content' | nt page <dst> write -
+nt page <src> read | jq -r '.content' | nt page <dst> replace --page -
 
 # search and preview titles
 nt search "meeting notes" | jq -r '.[].title'

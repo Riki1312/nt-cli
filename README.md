@@ -17,7 +17,7 @@ nt db abc123 query --filter '{"property":"Status","status":{"equals":"Done"}}'
 nt db abc123 query | jq -r '.[].id' | xargs -I{} nt page {} set '{"Status":"Archived"}'
 
 # copy content between pages
-nt page src123 read | jq -r '.content' | nt page dst456 write -
+nt page src123 read | jq -r '.content' | nt page dst456 replace --page -
 ```
 
 No daemon. No SDK. Each invocation is a single HTTPS request to `mcp.notion.com`.
@@ -29,8 +29,8 @@ No daemon. No SDK. Each invocation is a single HTTPS request to `mcp.notion.com`
 ```
 nt page <id> read                              # fetch page content and properties
 nt page <id> set '<json-properties>'           # update properties
-nt page <id> write '<markdown>'                # replace page content
-nt page <id> write --replace '<old>' '<new>'   # replace a section of page content
+nt page <id> replace '<old>' '<new>'           # find-and-replace content
+nt page <id> replace --page '<markdown>'       # replace entire page content
 nt page <id> append '<markdown>'               # append to page content
 nt page <id> create --title "Child page"       # create a child page
 nt page <id> move --to <target-id>             # move page

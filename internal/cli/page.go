@@ -20,7 +20,7 @@ func newPageCmd() *cobra.Command {
 Verbs:
   read        Fetch page content and properties
   set         Update page properties (JSON argument)
-  write       Replace page content (markdown argument)
+  replace     Find-and-replace content, or full replacement with --page
   append      Append to page content (markdown argument)
   create      Create a child page (--title required)
   move        Move page to a new parent (--to required)
@@ -38,8 +38,8 @@ Verbs:
 				return runPageRead(cmd, pageID)
 			case "set":
 				return runPageSet(cmd, pageID, rest)
-			case "write":
-				return runPageWrite(cmd, pageID, rest)
+			case "replace":
+				return runPageReplace(cmd, pageID, rest)
 			case "append":
 				return runPageAppend(cmd, pageID, rest)
 			case "create":
@@ -53,12 +53,13 @@ Verbs:
 			case "comment":
 				return runPageComment(cmd, pageID, rest)
 			default:
-				return fmt.Errorf("unknown verb %q; expected: read, set, write, append, create, move, duplicate, comments, comment", verb)
+				return fmt.Errorf("unknown verb %q; expected: read, set, replace, append, create, move, duplicate, comments, comment", verb)
 			}
 		},
 	}
 	cmd.Flags().String("title", "", "title for create verb")
 	cmd.Flags().String("to", "", "target parent ID for move verb")
+	cmd.Flags().Bool("page", false, "replace entire page content")
 	return cmd
 }
 
@@ -128,9 +129,45 @@ func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
 	return output.Print(map[string]any{"id": pageID, "ok": true})
 }
 
-func runPageWrite(cmd *cobra.Command, pageID string, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("write requires a markdown content argument")
+func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
+	pageFlag, _ := cmd.Flags().GetBool("page")
+
+	if pageFlag {
+		// Full page replacement: nt page <id> replace --page '<markdown>'
+		if len(args) < 1 {
+			return fmt.Errorf("replace --page requires a markdown content argument")
+		}
+
+		tok, err := auth.EnsureValidToken(cmd.Context())
+		if err != nil {
+			return output.AuthError(err.Error())
+		}
+
+		content, err := readContentArg(args[0])
+		if err != nil {
+			return err
+		}
+
+		toolArgs := map[string]any{
+			"page_id": pageID,
+			"command": "replace_content",
+			"new_str": content,
+		}
+
+		raw, _ := cmd.Flags().GetBool("raw")
+		if raw {
+			return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
+		}
+
+		if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
+			return err
+		}
+		return output.Print(map[string]any{"id": pageID, "ok": true})
+	}
+
+	// Targeted find-and-replace: nt page <id> replace '<old>' '<new>'
+	if len(args) < 2 {
+		return fmt.Errorf("replace requires '<old>' '<new>' arguments, or use --page '<markdown>' for full content replacement")
 	}
 
 	tok, err := auth.EnsureValidToken(cmd.Context())
@@ -138,7 +175,11 @@ func runPageWrite(cmd *cobra.Command, pageID string, args []string) error {
 		return output.AuthError(err.Error())
 	}
 
-	content, err := readContentArg(args[0])
+	oldStr, err := readContentArg(args[0])
+	if err != nil {
+		return err
+	}
+	newStr, err := readContentArg(args[1])
 	if err != nil {
 		return err
 	}
@@ -146,7 +187,8 @@ func runPageWrite(cmd *cobra.Command, pageID string, args []string) error {
 	toolArgs := map[string]any{
 		"page_id": pageID,
 		"command": "replace_content",
-		"new_str": content,
+		"old_str": oldStr,
+		"new_str": newStr,
 	}
 
 	raw, _ := cmd.Flags().GetBool("raw")

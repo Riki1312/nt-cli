@@ -30,7 +30,7 @@ nt db abc123 query --filter '{"property":"Status","status":{"equals":"Done"}}' >
 nt search "meeting notes" | jq -r '.[].title' | grep -i "standup"
 
 # copy content between pages
-nt page <src> read | jq -r '.content' | nt page <dst> write -
+nt page <src> read | jq -r '.content' | nt page <dst> replace --page -
 ```
 
 No sandbox to build. No SDK to maintain. No new security model. The agent writes bash, and gets the full Unix ecosystem for free.
