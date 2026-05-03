@@ -20,7 +20,8 @@ Resource-scoped commands put the target ID front and center. This makes it trivi
 ```bash
 nt page <id> read                              # fetch page content and properties
 nt page <id> set '<json-properties>'           # update properties
-nt page <id> replace '<old>' '<new>'           # find-and-replace content
+nt page <id> replace '<old>' '<new>'           # find-and-replace content (all matches)
+nt page <id> replace --first '<old>' '<new>'   # replace only the first match
 nt page <id> replace --page '<markdown>'       # replace entire page content
 nt page <id> append '<markdown>'               # append to page content
 nt page <id> create --title "Child page"       # create a child page under this page
@@ -36,7 +37,7 @@ nt page <id> comment '<text>'                  # add a comment
 |-----|----------|-------|
 | `read` | `notion-fetch` | Returns JSON with properties and Notion-flavored Markdown content |
 | `set` | `notion-update-page` | `command: "update_properties"`, flat params |
-| `replace` | `notion-update-page` | `command: "replace_content"`. With two args: targeted find-and-replace (`old_str` + `new_str`). With `--page`: full content replacement (`new_str` only). Rejects writes that delete child pages unless `allow_deleting_content: true` |
+| `replace` | `notion-fetch` + `notion-update-page` | With two args: read current content, replace client-side, then `command: "replace_content"` with merged markdown. Default replaces all matches; `--first` replaces only the first match. Targeted replace requires a non-empty `old` string. With `--page`: full content replacement (`new_str` only). `--first` is invalid with `--page`. Rejects writes that delete child pages unless `allow_deleting_content: true` |
 | `append` | Read via `notion-fetch`, then `notion-update-page` | Reads current content, concatenates, then uses `command: "replace_content"` |
 | `create` | `notion-create-pages` | `parent: {"page_id": "<id>"}` |
 | `move` | `notion-move-pages` | |

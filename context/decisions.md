@@ -35,3 +35,9 @@ Search results are filtered client-side via `--type` and `--limit` flags. The MC
 ## 2026-03-03: Database type hint on page read
 
 When `nt page <id> read` fetches a resource whose `metadata.type` is `"database"`, it includes a `hint` field in the JSON output and emits a hint to stderr suggesting `nt db <id> read`. This avoids a wasted round-trip when an agent or user accidentally uses the wrong command.
+
+## 2026-05-03: Targeted page replace uses client-side read-then-replace
+
+The `nt page <id> replace '<old>' '<new>'` command now reads the current page content first, performs the string replacement client-side, and then calls `replace_content` with the full merged markdown. Direct use of hosted MCP targeted replacement was observed to behave like destructive full replacement in practice, which is not safe for page-scoped edits.
+
+Targeted replace requires a non-empty match string. The optional `--first` flag narrows replacement to the first match only and is invalid with `--page`.

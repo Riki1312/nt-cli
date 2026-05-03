@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/mcp"
@@ -60,6 +61,7 @@ Verbs:
 	cmd.Flags().String("title", "", "title for create verb")
 	cmd.Flags().String("to", "", "target parent ID for move verb")
 	cmd.Flags().Bool("page", false, "replace entire page content")
+	cmd.Flags().Bool("first", false, "replace only the first occurrence for targeted replace")
 	return cmd
 }
 
@@ -131,8 +133,12 @@ func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
 
 func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 	pageFlag, _ := cmd.Flags().GetBool("page")
+	firstOnly, _ := cmd.Flags().GetBool("first")
 
 	if pageFlag {
+		if firstOnly {
+			return fmt.Errorf("replace --page cannot be used with --first")
+		}
 		// Full page replacement: nt page <id> replace --page '<markdown>'
 		if len(args) < 1 {
 			return fmt.Errorf("replace --page requires a markdown content argument")
@@ -184,11 +190,27 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 		return err
 	}
 
+	// Read the current page content so targeted replace happens client-side.
+	// The hosted MCP replace_content behavior is not reliable for scoped replacement.
+	fetchResult, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
+		"id": pageID,
+	})
+	if err != nil {
+		return fmt.Errorf("reading page before replace: %w", err)
+	}
+	if fetchResult.IsError {
+		return output.NewError(output.ExitError, "TOOL_ERROR", fetchResult.TextContent())
+	}
+
+	existing := transform.ExtractPageContent(fetchResult.TextContent())
+	merged, err := replacePageContent(existing, oldStr, newStr, firstOnly)
+	if err != nil {
+		return err
+	}
 	toolArgs := map[string]any{
 		"page_id": pageID,
 		"command": "replace_content",
-		"old_str": oldStr,
-		"new_str": newStr,
+		"new_str": merged,
 	}
 
 	raw, _ := cmd.Flags().GetBool("raw")
@@ -200,6 +222,19 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 		return err
 	}
 	return output.Print(map[string]any{"id": pageID, "ok": true})
+}
+
+func replacePageContent(existing, oldStr, newStr string, firstOnly bool) (string, error) {
+	if oldStr == "" {
+		return "", fmt.Errorf("replace target cannot be empty")
+	}
+	if !strings.Contains(existing, oldStr) {
+		return "", fmt.Errorf("replace target not found in page content")
+	}
+	if firstOnly {
+		return strings.Replace(existing, oldStr, newStr, 1), nil
+	}
+	return strings.ReplaceAll(existing, oldStr, newStr), nil
 }
 
 func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {

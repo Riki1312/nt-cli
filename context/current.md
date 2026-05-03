@@ -9,7 +9,8 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 ### Page commands (`nt page <id> <verb>`)
 - `read` - fetch page with parsed properties and content
 - `set '<json>'` - update page properties
-- `replace '<old>' '<new>'` - find-and-replace content
+- `replace '<old>' '<new>'` - find-and-replace content (all matches)
+- `replace --first '<old>' '<new>'` - replace only the first match
 - `replace --page '<md>'` - replace entire page content
 - `append '<md>'` - append to page (read-then-replace strategy)
 - `create --title "..."` - create child page
@@ -39,6 +40,8 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 
 - `nt page <id> read` on a database returns empty content but includes a hint to use `nt db` instead
 - `append` uses read-then-replace (not `insert_content_after`) due to selection matching fragility
+- `replace '<old>' '<new>'` now also uses read-then-replace client-side, because direct hosted MCP replacement is not reliable for scoped edits
+- targeted `replace` rejects empty match strings, and `--first` is invalid with `--page`
 - `replace --page` rejects writes that delete child pages (safety feature from Notion)
 
 ## Next Steps
@@ -47,7 +50,7 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 - Error code mapping (not found, rate limited, permission denied -> exit codes)
 - `--cursor` pagination flag for search
 - `set` stdin support for properties JSON
-- Targeted find-and-replace via `replace '<old>' '<new>'` (done)
+- More structured tests around page update flows
 
 ## Key Files
 
