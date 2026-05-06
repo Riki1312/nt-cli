@@ -1,18 +1,19 @@
 .PHONY: build install test lint clean
 
 GOCACHE ?= $(CURDIR)/.cache/go-build
+GOMODCACHE ?= $(CURDIR)/.cache/gomod
 
 build:
-	go build -o bin/nt ./cmd/nt
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go build -o bin/nt ./cmd/nt
 
 install:
-	go install ./cmd/nt
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go install ./cmd/nt
 
 test:
-	GOCACHE=$(GOCACHE) go test ./...
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go test ./...
 
 lint:
-	GOCACHE=$(GOCACHE) go vet ./...
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go vet ./...
 
 clean:
 	rm -rf bin/ .cache/
