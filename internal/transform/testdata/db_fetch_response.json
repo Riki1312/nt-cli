@@ -1,0 +1,8 @@
+{
+  "metadata": {
+    "type": "database"
+  },
+  "title": "Tasks",
+  "url": "https://notion.so/db123",
+  "text": "CREATE TABLE _ (\n  Name title,\n  Status select\n);\n\n<data-source id=\"ds123\" />"
+}

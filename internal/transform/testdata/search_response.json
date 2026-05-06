@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "id": "page1",
+      "type": "page",
+      "title": "Project Plan",
+      "url": "https://notion.so/page1",
+      "highlight": "Project"
+    },
+    {
+      "id": "db1",
+      "type": "database",
+      "title": "Projects",
+      "url": "https://notion.so/db1"
+    },
+    {
+      "id": "page2",
+      "type": "page",
+      "title": "Project Notes",
+      "url": "https://notion.so/page2"
+    }
+  ]
+}

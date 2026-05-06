@@ -1,0 +1,12 @@
+{
+  "pages": [
+    {
+      "id": "page1",
+      "url": "https://notion.so/page1"
+    },
+    {
+      "id": "page2",
+      "url": "https://notion.so/page2"
+    }
+  ]
+}
