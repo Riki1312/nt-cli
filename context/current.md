@@ -6,6 +6,7 @@ All core commands implemented and tested end-to-end. Codebase reviewed and clean
 Latest implementation note, 2026-05-06: docs drift fixed for SQL database queries, transform golden tests added, and MCP/tool error classification now maps not found, auth, rate limit, and permission failures to documented exit codes.
 Latest testing note, 2026-05-06: CLI command handlers now use a private `app` dependency seam so command-level tests can fake auth/MCP/output. Added command tests for SQL query request shaping and read-then-write page replace, and removed the narrower overlapping page replacement unit test.
 Latest review note, 2026-05-06: fixed remaining docs drift, made `make test` and `make lint` use a repo-local Go build cache, added focused OAuth helper tests, made create transform results typed, made `--raw` return the raw MCP tool result, and tightened resource command arity.
+Latest polish note, 2026-05-06: `logout` now removes both token and OAuth client registration state, all Makefile Go targets use repo-local build/module caches, and comments transform output is typed.
 
 ## What Works
 
@@ -37,6 +38,7 @@ Latest review note, 2026-05-06: fixed remaining docs drift, made `make test` and
 ### Infrastructure
 - All commands support `--raw` for raw MCP tool output
 - Token refresh works automatically
+- `logout` removes saved token and OAuth client registration files
 - Hidden `tools` command for debugging available MCP tools
 
 ## Key Limitations
@@ -51,6 +53,7 @@ Latest review note, 2026-05-06: fixed remaining docs drift, made `make test` and
 
 - `--cursor` pagination flag for search
 - More command-level tests around page update edge cases if they catch behavior not already covered
+- Consider true end-to-end smoke tests against a disposable Notion workspace when credentials/test workspace setup exists
 
 ## Key Files
 
