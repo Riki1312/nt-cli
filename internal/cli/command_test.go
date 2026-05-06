@@ -96,6 +96,23 @@ func TestPageReplaceCommandReadsAndWritesMergedContent(t *testing.T) {
 	assertPrintedJSON(t, printed, `{"id":"page123","ok":true}`)
 }
 
+func TestResourceCommandsRejectExtraArguments(t *testing.T) {
+	t.Parallel()
+
+	var calls []toolCall
+	var printed []any
+	err := executeTestCommand(testApp(t, &calls, &printed), "page", "page123", "read", "extra")
+	if err == nil {
+		t.Fatalf("Execute returned nil error")
+	}
+	if len(calls) != 0 {
+		t.Fatalf("got %d tool calls, want 0", len(calls))
+	}
+	if len(printed) != 0 {
+		t.Fatalf("got %d printed values, want 0", len(printed))
+	}
+}
+
 func testApp(t *testing.T, calls *[]toolCall, printed *[]any) app {
 	t.Helper()
 

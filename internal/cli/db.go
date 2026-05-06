@@ -33,12 +33,18 @@ Verbs:
 
 			switch verb {
 			case "read":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runDBRead(cmd, a, dbID)
 			case "query":
 				return runDBQuery(cmd, a, dbID, rest)
 			case "create":
 				return runDBCreate(cmd, a, dbID, rest)
 			case "update":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runDBUpdate(cmd, a, dbID)
 			default:
 				return fmt.Errorf("unknown verb %q; expected: read, query, create, update", verb)
@@ -80,8 +86,8 @@ func runDBRead(cmd *cobra.Command, a app, dbID string) error {
 var tablePlaceholder = regexp.MustCompile(`(?i)\b(FROM|JOIN)\s+_\b`)
 
 func runDBQuery(cmd *cobra.Command, a app, dbID string, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("query requires a SQL query argument")
+	if err := requireExactArgs("query", args, 1, "a SQL query argument"); err != nil {
+		return err
 	}
 
 	tok, err := a.ensureToken(cmd.Context())
@@ -131,6 +137,10 @@ func runDBQuery(cmd *cobra.Command, a app, dbID string, args []string) error {
 }
 
 func runDBCreate(cmd *cobra.Command, a app, dbID string, args []string) error {
+	if err := requireMaxArgs("create", args, 1, "one content argument"); err != nil {
+		return err
+	}
+
 	propsStr, _ := cmd.Flags().GetString("props")
 	if propsStr == "" {
 		return fmt.Errorf("create requires --props flag with JSON properties")

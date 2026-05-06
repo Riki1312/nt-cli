@@ -34,6 +34,9 @@ Verbs:
 
 			switch verb {
 			case "read":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runPageRead(cmd, a, pageID)
 			case "set":
 				return runPageSet(cmd, a, pageID, rest)
@@ -44,10 +47,19 @@ Verbs:
 			case "create":
 				return runPageCreate(cmd, a, pageID, rest)
 			case "move":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runPageMove(cmd, a, pageID)
 			case "duplicate":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runPageDuplicate(cmd, a, pageID)
 			case "comments":
+				if err := requireNoArgs(verb, rest); err != nil {
+					return err
+				}
 				return runPageComments(cmd, a, pageID)
 			case "comment":
 				return runPageComment(cmd, a, pageID, rest)
@@ -93,8 +105,8 @@ func runPageRead(cmd *cobra.Command, a app, pageID string) error {
 }
 
 func runPageSet(cmd *cobra.Command, a app, pageID string, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("set requires a JSON properties argument")
+	if err := requireExactArgs("set", args, 1, "a JSON properties argument"); err != nil {
+		return err
 	}
 
 	tok, err := a.ensureToken(cmd.Context())
@@ -137,9 +149,8 @@ func runPageReplace(cmd *cobra.Command, a app, pageID string, args []string) err
 		if firstOnly {
 			return fmt.Errorf("replace --page cannot be used with --first")
 		}
-		// Full page replacement: nt page <id> replace --page '<markdown>'
-		if len(args) < 1 {
-			return fmt.Errorf("replace --page requires a markdown content argument")
+		if err := requireExactArgs("replace --page", args, 1, "a markdown content argument"); err != nil {
+			return err
 		}
 
 		tok, err := a.ensureToken(cmd.Context())
@@ -169,8 +180,7 @@ func runPageReplace(cmd *cobra.Command, a app, pageID string, args []string) err
 		return a.print(map[string]any{"id": pageID, "ok": true})
 	}
 
-	// Targeted find-and-replace: nt page <id> replace '<old>' '<new>'
-	if len(args) < 2 {
+	if len(args) != 2 {
 		return fmt.Errorf("replace requires '<old>' '<new>' arguments, or use --page '<markdown>' for full content replacement")
 	}
 
@@ -236,8 +246,8 @@ func replacePageContent(existing, oldStr, newStr string, firstOnly bool) (string
 }
 
 func runPageAppend(cmd *cobra.Command, a app, pageID string, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("append requires a markdown content argument")
+	if err := requireExactArgs("append", args, 1, "a markdown content argument"); err != nil {
+		return err
 	}
 
 	tok, err := a.ensureToken(cmd.Context())
@@ -287,6 +297,10 @@ func runPageAppend(cmd *cobra.Command, a app, pageID string, args []string) erro
 }
 
 func runPageCreate(cmd *cobra.Command, a app, parentID string, args []string) error {
+	if err := requireMaxArgs("create", args, 1, "one content argument"); err != nil {
+		return err
+	}
+
 	title, _ := cmd.Flags().GetString("title")
 	if title == "" {
 		return fmt.Errorf("create requires --title flag")
@@ -404,8 +418,8 @@ func runPageComments(cmd *cobra.Command, a app, pageID string) error {
 }
 
 func runPageComment(cmd *cobra.Command, a app, pageID string, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("comment requires a text argument")
+	if err := requireExactArgs("comment", args, 1, "a text argument"); err != nil {
+		return err
 	}
 
 	tok, err := a.ensureToken(cmd.Context())

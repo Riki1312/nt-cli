@@ -47,3 +47,24 @@ func readContentArg(arg string) (string, error) {
 	}
 	return arg, nil
 }
+
+func requireNoArgs(verb string, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("%s does not accept arguments", verb)
+	}
+	return nil
+}
+
+func requireExactArgs(verb string, args []string, n int, usage string) error {
+	if len(args) != n {
+		return fmt.Errorf("%s requires %s", verb, usage)
+	}
+	return nil
+}
+
+func requireMaxArgs(verb string, args []string, n int, usage string) error {
+	if len(args) > n {
+		return fmt.Errorf("%s accepts at most %s", verb, usage)
+	}
+	return nil
+}
