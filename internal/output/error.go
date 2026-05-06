@@ -10,12 +10,18 @@ import (
 )
 
 const (
-	ExitOK          = 0
-	ExitError       = 1
-	ExitAuth        = 2
-	ExitNotFound    = 3
+	// ExitOK is returned on success.
+	ExitOK = 0
+	// ExitError is returned for unclassified failures.
+	ExitError = 1
+	// ExitAuth is returned when authentication fails.
+	ExitAuth = 2
+	// ExitNotFound is returned when a requested Notion resource is missing.
+	ExitNotFound = 3
+	// ExitRateLimited is returned when Notion asks the client to slow down.
 	ExitRateLimited = 4
-	ExitPermission  = 5
+	// ExitPermission is returned when the workspace denies access.
+	ExitPermission = 5
 )
 
 // CLIError is a structured error that maps to a JSON output and exit code.
@@ -30,10 +36,12 @@ func (e *CLIError) Error() string {
 	return e.Message
 }
 
+// NewError builds a CLIError with an explicit exit code and machine code.
 func NewError(exitCode int, code string, msg string) *CLIError {
 	return &CLIError{Message: msg, Code: code, ExitCode: exitCode}
 }
 
+// AuthError builds an authentication failure.
 func AuthError(msg string) *CLIError {
 	return NewError(ExitAuth, "AUTH_ERROR", msg)
 }

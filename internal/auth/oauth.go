@@ -45,8 +45,7 @@ func tokenFromResponse(resp *tokenResponse, fallbackRefresh string) *Token {
 	return tok
 }
 
-// ServerMetadata holds the discovered OAuth endpoints.
-type ServerMetadata struct {
+type serverMetadata struct {
 	AuthorizationEndpoint string `json:"authorization_endpoint"`
 	TokenEndpoint         string `json:"token_endpoint"`
 	RegistrationEndpoint  string `json:"registration_endpoint,omitempty"`
@@ -136,7 +135,7 @@ func Login(ctx context.Context) error {
 	return nil
 }
 
-func discoverMetadata(ctx context.Context) (*ServerMetadata, error) {
+func discoverMetadata(ctx context.Context) (*serverMetadata, error) {
 	// Step 1: Get protected resource metadata
 	// RFC 9728: insert /.well-known/oauth-protected-resource between host and path
 	prURL, err := buildWellKnownURL(mcp.NotionMCPEndpoint, "oauth-protected-resource")
@@ -154,7 +153,7 @@ func discoverMetadata(ctx context.Context) (*ServerMetadata, error) {
 	// Step 2: Get authorization server metadata
 	authServer := strings.TrimRight(prMeta.AuthorizationServers[0], "/")
 	asURL := authServer + "/.well-known/oauth-authorization-server"
-	metadata, err := httpGetJSON[ServerMetadata](ctx, asURL)
+	metadata, err := httpGetJSON[serverMetadata](ctx, asURL)
 	if err != nil {
 		return nil, fmt.Errorf("fetching authorization server metadata: %w", err)
 	}
@@ -164,7 +163,7 @@ func discoverMetadata(ctx context.Context) (*ServerMetadata, error) {
 
 func registerClient(ctx context.Context, endpoint, redirectURI string) (string, error) {
 	body := map[string]any{
-		"client_name":                 "nt-cli",
+		"client_name":                "nt-cli",
 		"redirect_uris":              []string{redirectURI},
 		"grant_types":                []string{"authorization_code", "refresh_token"},
 		"response_types":             []string{"code"},
@@ -248,7 +247,7 @@ func buildAuthURL(endpoint, clientID, redirectURI, challenge, state string) stri
 	return endpoint + "?" + params.Encode()
 }
 
-func exchangeCode(ctx context.Context, metadata *ServerMetadata, clientID, code, verifier, redirectURI string) (*Token, error) {
+func exchangeCode(ctx context.Context, metadata *serverMetadata, clientID, code, verifier, redirectURI string) (*Token, error) {
 	data := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},

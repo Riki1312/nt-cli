@@ -8,13 +8,14 @@ import (
 	"github.com/Riki1312/nt-cli/internal/mcp"
 )
 
+// Page is a compact page fetch result.
 type Page struct {
-	ID         string            `json:"id"`
-	Title      string            `json:"title,omitempty"`
-	URL        string            `json:"url,omitempty"`
-	Properties map[string]any    `json:"properties,omitempty"`
-	Content    string            `json:"content"`
-	Hint       string            `json:"hint,omitempty"`
+	ID         string         `json:"id"`
+	Title      string         `json:"title,omitempty"`
+	URL        string         `json:"url,omitempty"`
+	Properties map[string]any `json:"properties,omitempty"`
+	Content    string         `json:"content"`
+	Hint       string         `json:"hint,omitempty"`
 }
 
 // fetchResponse matches the JSON structure returned by notion-fetch.
@@ -36,7 +37,6 @@ func PageRead(result *mcp.ToolResult, pageID string) (*Page, error) {
 
 	var resp fetchResponse
 	if err := json.Unmarshal([]byte(text), &resp); err != nil {
-		// Fallback: return raw text if not JSON
 		return &Page{ID: pageID, Content: text}, nil
 	}
 
@@ -50,10 +50,7 @@ func PageRead(result *mcp.ToolResult, pageID string) (*Page, error) {
 		page.Hint = "this is a database; use: nt db " + pageID + " read"
 	}
 
-	// Extract properties from <properties> tags in the text
 	page.Properties = extractProperties(resp.Text)
-
-	// Extract content from <content> tags in the text
 	page.Content = extractContent(resp.Text)
 
 	return page, nil
@@ -99,10 +96,8 @@ func extractContent(text string) string {
 	content := text[start+len("<content>") : end]
 	content = strings.TrimSpace(content)
 
-	// Clean up Notion-flavored artifacts
 	content = strings.ReplaceAll(content, "<empty-block/>", "")
 
-	// Collapse excessive blank lines (3+ newlines -> 2)
 	for strings.Contains(content, "\n\n\n") {
 		content = strings.ReplaceAll(content, "\n\n\n", "\n\n")
 	}

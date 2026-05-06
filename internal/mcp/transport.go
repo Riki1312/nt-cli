@@ -2,6 +2,7 @@ package mcp
 
 import "net/http"
 
+// NotionMCPEndpoint is Notion's hosted MCP Streamable HTTP endpoint.
 const NotionMCPEndpoint = "https://mcp.notion.com/mcp"
 
 // authRoundTripper injects an Authorization header into every request.

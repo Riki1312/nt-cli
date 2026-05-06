@@ -25,11 +25,12 @@ func (t *Token) IsExpired() bool {
 	return time.Now().After(t.Expiry.Add(-30 * time.Second))
 }
 
-// ClientRegistration holds the dynamically registered OAuth client info.
+// ClientRegistration is the local OAuth client registration.
 type ClientRegistration struct {
 	ClientID string `json:"client_id"`
 }
 
+// ErrNoToken means the user has not completed login.
 var ErrNoToken = errors.New("not logged in; run 'nt login'")
 
 func configDir() (string, error) {
@@ -44,6 +45,7 @@ func configDir() (string, error) {
 	return dir, nil
 }
 
+// LoadToken reads the saved OAuth token.
 func LoadToken() (*Token, error) {
 	dir, err := configDir()
 	if err != nil {
@@ -63,6 +65,7 @@ func LoadToken() (*Token, error) {
 	return &tok, nil
 }
 
+// SaveToken writes the OAuth token with user-only permissions.
 func SaveToken(tok *Token) error {
 	dir, err := configDir()
 	if err != nil {
@@ -79,6 +82,7 @@ func SaveToken(tok *Token) error {
 	return nil
 }
 
+// LoadClientRegistration reads the saved OAuth client registration.
 func LoadClientRegistration() (*ClientRegistration, error) {
 	dir, err := configDir()
 	if err != nil {
@@ -98,6 +102,7 @@ func LoadClientRegistration() (*ClientRegistration, error) {
 	return &reg, nil
 }
 
+// SaveClientRegistration writes the OAuth client registration.
 func SaveClientRegistration(reg *ClientRegistration) error {
 	dir, err := configDir()
 	if err != nil {
@@ -114,6 +119,7 @@ func SaveClientRegistration(reg *ClientRegistration) error {
 	return nil
 }
 
+// DeleteToken removes saved OAuth credentials.
 func DeleteToken() error {
 	dir, err := configDir()
 	if err != nil {

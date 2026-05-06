@@ -7,6 +7,7 @@ import (
 	"github.com/Riki1312/nt-cli/internal/mcp"
 )
 
+// SearchResult is one compact result from workspace search.
 type SearchResult struct {
 	ID        string `json:"id"`
 	Type      string `json:"type,omitempty"`

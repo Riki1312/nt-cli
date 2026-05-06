@@ -23,8 +23,7 @@ type createResponse struct {
 	} `json:"pages"`
 }
 
-// CreatedPages extracts page IDs and URLs from a notion-create-pages result.
-// Always returns a slice of createdPage for a consistent JSON shape.
+// CreatedPages returns compact confirmations from a notion-create-pages result.
 func CreatedPages(result *mcp.ToolResult) (any, error) {
 	text := result.TextContent()
 	if text == "" {
@@ -40,7 +39,6 @@ func CreatedPages(result *mcp.ToolResult) (any, error) {
 		return pages, nil
 	}
 
-	// Fallback: try to find <page> tags in text
 	return parsePageTags(text)
 }
 
@@ -112,11 +110,9 @@ func parsePageTags(text string) (any, error) {
 func extractIDFromURL(u string) string {
 	parts := strings.Split(u, "/")
 	last := parts[len(parts)-1]
-	// The ID might have a slug prefix separated by - (e.g. "My-Page-abc123def456...")
 	if idx := strings.LastIndex(last, "-"); idx >= 0 && len(last)-idx-1 == 32 {
 		return last[idx+1:]
 	}
-	// Bare UUID with dashes (e.g. "abcd1234-5678-...")
 	clean := strings.ReplaceAll(last, "-", "")
 	if len(clean) == 32 {
 		return clean

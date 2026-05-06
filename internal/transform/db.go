@@ -16,8 +16,8 @@ type Database struct {
 }
 
 type queryResponse struct {
-	Results  []any `json:"results"`
-	HasMore  bool  `json:"has_more"`
+	Results []any `json:"results"`
+	HasMore bool  `json:"has_more"`
 }
 
 // QueryResults converts a notion-query-data-sources result into a JSON array of rows.
@@ -32,7 +32,6 @@ func QueryResults(result *mcp.ToolResult) (any, error) {
 		return resp.Results, nil
 	}
 
-	// Fallback: try to parse as raw JSON
 	var parsed any
 	if err := json.Unmarshal([]byte(text), &parsed); err == nil {
 		return parsed, nil
@@ -59,7 +58,6 @@ func DBRead(result *mcp.ToolResult, dbID string) (*Database, error) {
 		URL:   resp.URL,
 	}
 
-	// The text field contains the full schema with data-source, views, etc.
 	db.Schema = resp.Text
 
 	return db, nil

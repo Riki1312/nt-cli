@@ -17,6 +17,7 @@ type ToolResult struct {
 	IsError bool          `json:"isError"`
 }
 
+// ContentItem is one MCP content block after conversion to nt's compact shape.
 type ContentItem struct {
 	Type string `json:"type"`
 	Text string `json:"text,omitempty"`
