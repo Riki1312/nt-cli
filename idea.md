@@ -23,8 +23,8 @@ nt search "Q1 goals" | jq -r '.[0].id'
 # pipe into read
 nt page $(nt search "Q1 goals" | jq -r '.[0].id') read
 
-# query a database with JSON filters
-nt db abc123 query --filter '{"property":"Status","status":{"equals":"Done"}}' > done.json
+# query a database with SQL
+nt db abc123 query "SELECT Name, Status FROM _ WHERE Status = 'Done'" > done.json
 
 # compose with any unix tool
 nt search "meeting notes" | jq -r '.[].title' | grep -i "standup"
@@ -54,13 +54,13 @@ No sandbox to build. No SDK to maintain. No new security model. The agent writes
 
 **Wrap, don't reimplement.** The Notion MCP server already handles auth, API versioning, and Notion's quirks. We are a thin translation layer from CLI arguments to MCP tool calls, and from MCP responses to compact output. When the MCP server gains new capabilities, we gain them too.
 
-**Compact by default.** Output is terse, structured JSON when piped, and human-readable when interactive (TTY). Every byte in the output should earn its place; agents pay for tokens, humans pay for attention.
+**Compact by default.** Output is terse, structured JSON on stdout. Every byte in the output should earn its place; agents pay for tokens, humans pay for attention.
 
 **Composable over complete.** We don't need to cover every use case in the CLI itself. A small set of well-designed commands that compose with standard Unix tools is more powerful than a sprawling feature set. `nt search | jq | xargs nt fetch` should just work.
 
 **Fast per-invocation.** The CLI is a compiled Go binary. Each invocation is a single HTTPS request to Notion's hosted MCP server; no local process startup, no connection pooling, no daemon. Commands complete in the time it takes for the Notion API to respond, with negligible local overhead.
 
-**Progressive disclosure.** Simple things are simple (`nt search "meeting"`), complex things are possible (`nt query <db-id> --filter '{"property":"Status","status":{"equals":"Done"}}'`). Structured JSON for filters and sorts; no custom query syntax to learn or parse, and agents can generate it natively.
+**Progressive disclosure.** Simple things are simple (`nt search "meeting"`), complex things are possible (`nt db <data-source-id> query "SELECT * FROM _ WHERE Status = ?" --params "Done"`). SQL handles richer database queries without inventing a Notion-specific query language.
 
 ## Goals
 

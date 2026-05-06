@@ -11,7 +11,7 @@ MCP gives agents authenticated access to Notion, but the interface is verbose an
 nt page $(nt search "Q1 goals" | jq -r '.[0].id') read
 
 # query a database
-nt db abc123 query --filter '{"property":"Status","status":{"equals":"Done"}}'
+nt db abc123 query "SELECT Name, Status FROM _ WHERE Status = 'Done'"
 
 # bulk update
 nt db abc123 query | jq -r '.[].id' | xargs -I{} nt page {} set '{"Status":"Archived"}'
@@ -40,7 +40,7 @@ nt page <id> comments                          # list comments
 nt page <id> comment '<text>'                  # add a comment
 
 nt db <id> read                                # fetch database schema
-nt db <id> query [--filter '<json>']           # query rows
+nt db <id> query '<sql>' [--params ...]        # query rows
 nt db <id> create --props '<json>'             # create a row
 nt db <id> update [--title "..."]              # update database schema
 ```
