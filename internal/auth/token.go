@@ -119,15 +119,22 @@ func SaveClientRegistration(reg *ClientRegistration) error {
 	return nil
 }
 
-// DeleteToken removes saved OAuth credentials.
-func DeleteToken() error {
+// DeleteCredentials removes saved OAuth state.
+func DeleteCredentials() error {
+	if err := removeConfigFile("token.json"); err != nil {
+		return err
+	}
+	return removeConfigFile("client.json")
+}
+
+func removeConfigFile(name string) error {
 	dir, err := configDir()
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(dir, "token.json")
+	path := filepath.Join(dir, name)
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("removing token file: %w", err)
+		return fmt.Errorf("removing %s: %w", name, err)
 	}
 	return nil
 }

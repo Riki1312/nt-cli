@@ -24,7 +24,7 @@ func newApp() app {
 	return app{
 		ensureToken: auth.EnsureValidToken,
 		login:       auth.Login,
-		logout:      auth.DeleteToken,
+		logout:      auth.DeleteCredentials,
 		callTool:    mcp.CallTool,
 		callToolRaw: mcp.CallToolRaw,
 		listTools:   mcp.ListTools,
