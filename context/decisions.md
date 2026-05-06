@@ -41,3 +41,9 @@ When `nt page <id> read` fetches a resource whose `metadata.type` is `"database"
 The `nt page <id> replace '<old>' '<new>'` command now reads the current page content first, performs the string replacement client-side, and then calls `replace_content` with the full merged markdown. Direct use of hosted MCP targeted replacement was observed to behave like destructive full replacement in practice, which is not safe for page-scoped edits.
 
 Targeted replace requires a non-empty match string. The optional `--first` flag narrows replacement to the first match only and is invalid with `--page`.
+
+## 2026-05-06: Prefer high-value integration tests over coverage-driven unit tests
+
+Testing should favor command-level or end-to-end coverage when it can exercise real behavior without a large harness. Unit tests are reserved for logic that is hard, slow, or fragile to reach through command execution. Avoid overlapping tests that assert the same behavior at multiple layers unless the lower-level test covers important edge cases.
+
+Line count is a resource. New seams, helpers, comments, and tests should pay for themselves in clarity, correctness, or maintainability.

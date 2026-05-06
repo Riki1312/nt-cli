@@ -5,6 +5,7 @@
 All core commands implemented and tested end-to-end. Codebase reviewed and cleaned up.
 Latest review note, 2026-05-06: project feedback requested; no code changes made. `go test ./...` passes when run with `GOCACHE=/tmp/nt-cli-go-build` because the default Go cache path is outside the sandbox.
 Latest implementation note, 2026-05-06: docs drift fixed for SQL database queries, transform golden tests added, and MCP/tool error classification now maps not found, auth, rate limit, and permission failures to documented exit codes.
+Latest testing note, 2026-05-06: CLI command handlers now use a private `app` dependency seam so command-level tests can fake auth/MCP/output. Added command tests for SQL query request shaping and read-then-write page replace, and removed the narrower overlapping page replacement unit test.
 
 ## What Works
 
@@ -50,7 +51,7 @@ Latest implementation note, 2026-05-06: docs drift fixed for SQL database querie
 
 - Add unit tests for auth/OAuth helper behavior
 - `--cursor` pagination flag for search
-- More structured tests around page update flows
+- More command-level tests around page update edge cases if they catch behavior not already covered
 
 ## Key Files
 
