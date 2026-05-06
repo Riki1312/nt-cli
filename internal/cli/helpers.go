@@ -19,7 +19,7 @@ func callAndPrintRaw(ctx context.Context, token, tool string, args map[string]an
 		return err
 	}
 	if result.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
+		return output.ToolError(result.TextContent())
 	}
 	return output.Print(json.RawMessage(data))
 }
@@ -32,7 +32,7 @@ func callTool(ctx context.Context, token, tool string, args map[string]any) (*mc
 		return nil, err
 	}
 	if result.IsError {
-		return nil, output.NewError(output.ExitError, "TOOL_ERROR", result.TextContent())
+		return nil, output.ToolError(result.TextContent())
 	}
 	return result, nil
 }

@@ -199,7 +199,7 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 		return fmt.Errorf("reading page before replace: %w", err)
 	}
 	if fetchResult.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", fetchResult.TextContent())
+		return output.ToolError(fetchResult.TextContent())
 	}
 
 	existing := transform.ExtractPageContent(fetchResult.TextContent())
@@ -260,7 +260,7 @@ func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {
 		return fmt.Errorf("reading page before append: %w", err)
 	}
 	if fetchResult.IsError {
-		return output.NewError(output.ExitError, "TOOL_ERROR", fetchResult.TextContent())
+		return output.ToolError(fetchResult.TextContent())
 	}
 
 	existing := transform.ExtractPageContent(fetchResult.TextContent())
