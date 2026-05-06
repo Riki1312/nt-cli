@@ -1,5 +1,7 @@
 .PHONY: build install test lint clean
 
+GOCACHE ?= $(CURDIR)/.cache/go-build
+
 build:
 	go build -o bin/nt ./cmd/nt
 
@@ -7,10 +9,10 @@ install:
 	go install ./cmd/nt
 
 test:
-	go test ./...
+	GOCACHE=$(GOCACHE) go test ./...
 
 lint:
-	go vet ./...
+	GOCACHE=$(GOCACHE) go vet ./...
 
 clean:
-	rm -rf bin/
+	rm -rf bin/ .cache/
