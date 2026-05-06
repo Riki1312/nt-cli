@@ -117,9 +117,9 @@ All commands output JSON to stdout. No exceptions. Content fields contain Notion
 {"id": "abc123", "ok": true}
 ```
 
-**`create` operations** - include the URL of the new page:
+**`create` operations** - return an array because the MCP tool can create multiple pages:
 ```json
-{"id": "abc123", "url": "https://notion.so/abc123", "ok": true}
+[{"id": "abc123", "url": "https://notion.so/abc123", "ok": true}]
 ```
 
 ## Error Handling

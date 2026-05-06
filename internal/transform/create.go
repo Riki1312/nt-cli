@@ -8,10 +8,12 @@ import (
 	"github.com/Riki1312/nt-cli/internal/mcp"
 )
 
-type createdPage struct {
-	ID  string `json:"id"`
-	URL string `json:"url,omitempty"`
-	OK  bool   `json:"ok"`
+// CreatedPage is one compact create or duplicate confirmation.
+type CreatedPage struct {
+	ID    string `json:"id"`
+	Title string `json:"title,omitempty"`
+	URL   string `json:"url,omitempty"`
+	OK    bool   `json:"ok"`
 }
 
 // createResponse matches the JSON returned by notion-create-pages.
@@ -24,7 +26,7 @@ type createResponse struct {
 }
 
 // CreatedPages returns compact confirmations from a notion-create-pages result.
-func CreatedPages(result *mcp.ToolResult) (any, error) {
+func CreatedPages(result *mcp.ToolResult) ([]CreatedPage, error) {
 	text := result.TextContent()
 	if text == "" {
 		return nil, fmt.Errorf("empty create response")
@@ -32,9 +34,9 @@ func CreatedPages(result *mcp.ToolResult) (any, error) {
 
 	var resp createResponse
 	if err := json.Unmarshal([]byte(text), &resp); err == nil && len(resp.Pages) > 0 {
-		pages := make([]createdPage, 0, len(resp.Pages))
+		pages := make([]CreatedPage, 0, len(resp.Pages))
 		for _, p := range resp.Pages {
-			pages = append(pages, createdPage{ID: p.ID, URL: p.URL, OK: true})
+			pages = append(pages, CreatedPage{ID: p.ID, URL: p.URL, OK: true})
 		}
 		return pages, nil
 	}
@@ -49,29 +51,22 @@ type duplicateResponse struct {
 }
 
 // DuplicateResult extracts the duplicate page info from the response.
-func DuplicateResult(result *mcp.ToolResult, originalID string) any {
+func DuplicateResult(result *mcp.ToolResult, originalID string) CreatedPage {
 	text := result.TextContent()
 	if text == "" {
-		return map[string]any{"id": originalID, "ok": true}
+		return CreatedPage{ID: originalID, OK: true}
 	}
 
 	var resp duplicateResponse
 	if err := json.Unmarshal([]byte(text), &resp); err == nil && resp.PageID != "" {
-		return createdPage{ID: resp.PageID, URL: resp.PageURL, OK: true}
+		return CreatedPage{ID: resp.PageID, URL: resp.PageURL, OK: true}
 	}
 
-	return map[string]any{"id": originalID, "ok": true}
+	return CreatedPage{ID: originalID, OK: true}
 }
 
-func parsePageTags(text string) (any, error) {
-	type tagPage struct {
-		ID    string `json:"id"`
-		Title string `json:"title,omitempty"`
-		URL   string `json:"url,omitempty"`
-		OK    bool   `json:"ok"`
-	}
-
-	var pages []tagPage
+func parsePageTags(text string) ([]CreatedPage, error) {
+	var pages []CreatedPage
 	remaining := text
 	for {
 		start := strings.Index(remaining, "<page url=\"")
@@ -94,7 +89,7 @@ func parsePageTags(text string) (any, error) {
 		}
 
 		id := extractIDFromURL(pageURL)
-		pages = append(pages, tagPage{ID: id, Title: title, URL: pageURL, OK: true})
+		pages = append(pages, CreatedPage{ID: id, Title: title, URL: pageURL, OK: true})
 
 		if titleEnd >= 0 {
 			remaining = remaining[titleEnd+len("</page>"):]
