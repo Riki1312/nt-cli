@@ -3,9 +3,9 @@
 ## Active Work
 
 All core commands implemented and tested end-to-end. Codebase reviewed and cleaned up.
-Latest review note, 2026-05-06: project feedback requested; no code changes made. `go test ./...` passes when run with `GOCACHE=/tmp/nt-cli-go-build` because the default Go cache path is outside the sandbox.
 Latest implementation note, 2026-05-06: docs drift fixed for SQL database queries, transform golden tests added, and MCP/tool error classification now maps not found, auth, rate limit, and permission failures to documented exit codes.
 Latest testing note, 2026-05-06: CLI command handlers now use a private `app` dependency seam so command-level tests can fake auth/MCP/output. Added command tests for SQL query request shaping and read-then-write page replace, and removed the narrower overlapping page replacement unit test.
+Latest review note, 2026-05-06: fixed remaining docs drift, made `make test` and `make lint` use a repo-local Go build cache, added focused OAuth helper tests, made create transform results typed, made `--raw` return the raw MCP tool result, and tightened resource command arity.
 
 ## What Works
 
@@ -35,7 +35,7 @@ Latest testing note, 2026-05-06: CLI command handlers now use a private `app` de
 - `whoami` / `users` / `teams` - user and team info
 
 ### Infrastructure
-- All commands support `--raw` for raw MCP JSON output
+- All commands support `--raw` for raw MCP tool output
 - Token refresh works automatically
 - Hidden `tools` command for debugging available MCP tools
 
@@ -49,7 +49,6 @@ Latest testing note, 2026-05-06: CLI command handlers now use a private `app` de
 
 ## Next Steps
 
-- Add unit tests for auth/OAuth helper behavior
 - `--cursor` pagination flag for search
 - More command-level tests around page update edge cases if they catch behavior not already covered
 
