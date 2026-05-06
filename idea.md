@@ -64,7 +64,7 @@ No sandbox to build. No SDK to maintain. No new security model. The agent writes
 
 ## Goals
 
-1. **No API key required.** Authentication is handled via OAuth against Notion's hosted MCP server. A one-time `nt login` flow opens the browser, completes OAuth, and stores the token locally. No integration tokens, no manual configuration.
+1. **No API key required.** Authentication is handled via OAuth against Notion's hosted MCP server. A one-time `nt login` flow prints an authorization URL, completes OAuth through a local callback, and stores the token locally. No integration tokens, no manual configuration.
 
 2. **Agent-first design.** The primary consumer is an AI agent running in a coding assistant (Claude Code, Codex, etc.). Output format, verbosity, and command structure should optimize for token efficiency and LLM parseability.
 

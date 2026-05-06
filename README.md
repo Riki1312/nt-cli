@@ -14,7 +14,7 @@ nt page $(nt search "Q1 goals" | jq -r '.[0].id') read
 nt db abc123 query "SELECT Name, Status FROM _ WHERE Status = 'Done'"
 
 # bulk update
-nt db abc123 query | jq -r '.[].id' | xargs -I{} nt page {} set '{"Status":"Archived"}'
+nt db abc123 query "SELECT id FROM _ WHERE Status = 'Done'" | jq -r '.[].id' | xargs -I{} nt page {} set '{"Status":"Archived"}'
 
 # copy content between pages
 nt page src123 read | jq -r '.content' | nt page dst456 replace --page -

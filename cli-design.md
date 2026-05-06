@@ -70,7 +70,7 @@ nt db <id> update [--title "..."] [--schema '<sql>']  # update database schema
 ```bash
 nt search '<query>' [--type page] [--limit 10]  # search across workspace
 nt create --title "Page title"    # create a standalone page (workspace root)
-nt login                          # OAuth flow (opens browser)
+nt login                          # OAuth flow (prints authorization URL)
 nt logout                         # remove stored credentials
 nt whoami                         # current user and workspace info
 nt users                          # list workspace users
