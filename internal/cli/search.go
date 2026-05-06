@@ -1,13 +1,12 @@
 package cli
 
 import (
-	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
 )
 
-func newSearchCmd() *cobra.Command {
+func newSearchCmd(a app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search <query>",
 		Short: "Search across your Notion workspace",
@@ -18,7 +17,7 @@ func newSearchCmd() *cobra.Command {
 			limit, _ := cmd.Flags().GetInt("limit")
 			typeFilter, _ := cmd.Flags().GetString("type")
 
-			tok, err := auth.EnsureValidToken(cmd.Context())
+			tok, err := a.ensureToken(cmd.Context())
 			if err != nil {
 				return output.AuthError(err.Error())
 			}
@@ -26,10 +25,10 @@ func newSearchCmd() *cobra.Command {
 			toolArgs := map[string]any{"query": query}
 
 			if raw {
-				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-search", toolArgs)
+				return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-search", toolArgs)
 			}
 
-			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-search", toolArgs)
+			result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-search", toolArgs)
 			if err != nil {
 				return err
 			}
@@ -40,7 +39,7 @@ func newSearchCmd() *cobra.Command {
 			}
 
 			filtered := transform.FilterSearchResults(results, typeFilter, limit)
-			return output.Print(filtered)
+			return a.print(filtered)
 		},
 	}
 	cmd.Flags().Int("limit", 0, "maximum number of results to return")

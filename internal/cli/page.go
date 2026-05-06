@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Riki1312/nt-cli/internal/auth"
-	"github.com/Riki1312/nt-cli/internal/mcp"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
 )
 
-func newPageCmd() *cobra.Command {
+func newPageCmd(a app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "page <id> <verb> [args...]",
 		Short: "Operate on a Notion page",
@@ -36,23 +34,23 @@ Verbs:
 
 			switch verb {
 			case "read":
-				return runPageRead(cmd, pageID)
+				return runPageRead(cmd, a, pageID)
 			case "set":
-				return runPageSet(cmd, pageID, rest)
+				return runPageSet(cmd, a, pageID, rest)
 			case "replace":
-				return runPageReplace(cmd, pageID, rest)
+				return runPageReplace(cmd, a, pageID, rest)
 			case "append":
-				return runPageAppend(cmd, pageID, rest)
+				return runPageAppend(cmd, a, pageID, rest)
 			case "create":
-				return runPageCreate(cmd, pageID, rest)
+				return runPageCreate(cmd, a, pageID, rest)
 			case "move":
-				return runPageMove(cmd, pageID)
+				return runPageMove(cmd, a, pageID)
 			case "duplicate":
-				return runPageDuplicate(cmd, pageID)
+				return runPageDuplicate(cmd, a, pageID)
 			case "comments":
-				return runPageComments(cmd, pageID)
+				return runPageComments(cmd, a, pageID)
 			case "comment":
-				return runPageComment(cmd, pageID, rest)
+				return runPageComment(cmd, a, pageID, rest)
 			default:
 				return fmt.Errorf("unknown verb %q; expected: read, set, replace, append, create, move, duplicate, comments, comment", verb)
 			}
@@ -65,10 +63,10 @@ Verbs:
 	return cmd
 }
 
-func runPageRead(cmd *cobra.Command, pageID string) error {
+func runPageRead(cmd *cobra.Command, a app, pageID string) error {
 	raw, _ := cmd.Flags().GetBool("raw")
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -76,10 +74,10 @@ func runPageRead(cmd *cobra.Command, pageID string) error {
 	fetchArgs := map[string]any{"id": pageID}
 
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-fetch", fetchArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-fetch", fetchArgs)
 	if err != nil {
 		return err
 	}
@@ -89,17 +87,17 @@ func runPageRead(cmd *cobra.Command, pageID string) error {
 		return err
 	}
 	if page.Hint != "" {
-		output.Hint(page.Hint)
+		a.hint(page.Hint)
 	}
-	return output.Print(page)
+	return a.print(page)
 }
 
-func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
+func runPageSet(cmd *cobra.Command, a app, pageID string, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("set requires a JSON properties argument")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -122,16 +120,16 @@ func runPageSet(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": pageID, "ok": true})
+	return a.print(map[string]any{"id": pageID, "ok": true})
 }
 
-func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
+func runPageReplace(cmd *cobra.Command, a app, pageID string, args []string) error {
 	pageFlag, _ := cmd.Flags().GetBool("page")
 	firstOnly, _ := cmd.Flags().GetBool("first")
 
@@ -144,7 +142,7 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 			return fmt.Errorf("replace --page requires a markdown content argument")
 		}
 
-		tok, err := auth.EnsureValidToken(cmd.Context())
+		tok, err := a.ensureToken(cmd.Context())
 		if err != nil {
 			return output.AuthError(err.Error())
 		}
@@ -162,13 +160,13 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 
 		raw, _ := cmd.Flags().GetBool("raw")
 		if raw {
-			return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
+			return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs)
 		}
 
-		if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
+		if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 			return err
 		}
-		return output.Print(map[string]any{"id": pageID, "ok": true})
+		return a.print(map[string]any{"id": pageID, "ok": true})
 	}
 
 	// Targeted find-and-replace: nt page <id> replace '<old>' '<new>'
@@ -176,7 +174,7 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 		return fmt.Errorf("replace requires '<old>' '<new>' arguments, or use --page '<markdown>' for full content replacement")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -192,7 +190,7 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 
 	// Read the current page content so targeted replace happens client-side.
 	// The hosted MCP replace_content behavior is not reliable for scoped replacement.
-	fetchResult, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
+	fetchResult, err := a.callTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
 		"id": pageID,
 	})
 	if err != nil {
@@ -215,13 +213,13 @@ func runPageReplace(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": pageID, "ok": true})
+	return a.print(map[string]any{"id": pageID, "ok": true})
 }
 
 func replacePageContent(existing, oldStr, newStr string, firstOnly bool) (string, error) {
@@ -237,12 +235,12 @@ func replacePageContent(existing, oldStr, newStr string, firstOnly bool) (string
 	return strings.ReplaceAll(existing, oldStr, newStr), nil
 }
 
-func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {
+func runPageAppend(cmd *cobra.Command, a app, pageID string, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("append requires a markdown content argument")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -253,7 +251,7 @@ func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {
 	}
 
 	// Read the current page content so we can append to it.
-	fetchResult, err := mcp.CallTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
+	fetchResult, err := a.callTool(cmd.Context(), tok.AccessToken, "notion-fetch", map[string]any{
 		"id": pageID,
 	})
 	if err != nil {
@@ -279,22 +277,22 @@ func runPageAppend(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-page", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-update-page", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": pageID, "ok": true})
+	return a.print(map[string]any{"id": pageID, "ok": true})
 }
 
-func runPageCreate(cmd *cobra.Command, parentID string, args []string) error {
+func runPageCreate(cmd *cobra.Command, a app, parentID string, args []string) error {
 	title, _ := cmd.Flags().GetString("title")
 	if title == "" {
 		return fmt.Errorf("create requires --title flag")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -303,7 +301,6 @@ func runPageCreate(cmd *cobra.Command, parentID string, args []string) error {
 		"properties": map[string]any{"title": title},
 	}
 
-	// Optional content argument
 	if len(args) > 0 {
 		content, err := readContentArg(args[0])
 		if err != nil {
@@ -319,10 +316,10 @@ func runPageCreate(cmd *cobra.Command, parentID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 	if err != nil {
 		return err
 	}
@@ -331,16 +328,16 @@ func runPageCreate(cmd *cobra.Command, parentID string, args []string) error {
 	if err != nil {
 		return err
 	}
-	return output.Print(created)
+	return a.print(created)
 }
 
-func runPageMove(cmd *cobra.Command, pageID string) error {
+func runPageMove(cmd *cobra.Command, a app, pageID string) error {
 	target, _ := cmd.Flags().GetString("to")
 	if target == "" {
 		return fmt.Errorf("move requires --to flag with target parent ID")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -352,17 +349,17 @@ func runPageMove(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-move-pages", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-move-pages", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-move-pages", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": pageID, "ok": true})
+	return a.print(map[string]any{"id": pageID, "ok": true})
 }
 
-func runPageDuplicate(cmd *cobra.Command, pageID string) error {
-	tok, err := auth.EnsureValidToken(cmd.Context())
+func runPageDuplicate(cmd *cobra.Command, a app, pageID string) error {
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -373,18 +370,18 @@ func runPageDuplicate(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-duplicate-page", toolArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-duplicate-page", toolArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-duplicate-page", toolArgs)
 	if err != nil {
 		return err
 	}
-	return output.Print(transform.DuplicateResult(result, pageID))
+	return a.print(transform.DuplicateResult(result, pageID))
 }
 
-func runPageComments(cmd *cobra.Command, pageID string) error {
-	tok, err := auth.EnsureValidToken(cmd.Context())
+func runPageComments(cmd *cobra.Command, a app, pageID string) error {
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -396,22 +393,22 @@ func runPageComments(cmd *cobra.Command, pageID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-get-comments", toolArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-get-comments", toolArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-get-comments", toolArgs)
 	if err != nil {
 		return err
 	}
-	return output.Print(transform.Comments(result))
+	return a.print(transform.Comments(result))
 }
 
-func runPageComment(cmd *cobra.Command, pageID string, args []string) error {
+func runPageComment(cmd *cobra.Command, a app, pageID string, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("comment requires a text argument")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -430,11 +427,11 @@ func runPageComment(cmd *cobra.Command, pageID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-create-comment", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-comment", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-create-comment", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": pageID, "ok": true})
+	return a.print(map[string]any{"id": pageID, "ok": true})
 }

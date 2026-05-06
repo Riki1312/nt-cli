@@ -13,21 +13,21 @@ import (
 
 // callAndPrintRaw calls a tool and prints the raw JSON result, returning an
 // error (with proper exit code) if the MCP tool reports a failure.
-func callAndPrintRaw(ctx context.Context, token, tool string, args map[string]any) error {
-	result, data, err := mcp.CallToolRaw(ctx, token, tool, args)
+func callAndPrintRaw(ctx context.Context, a app, token, tool string, args map[string]any) error {
+	result, data, err := a.callToolRaw(ctx, token, tool, args)
 	if err != nil {
 		return err
 	}
 	if result.IsError {
 		return output.ToolError(result.TextContent())
 	}
-	return output.Print(json.RawMessage(data))
+	return a.print(json.RawMessage(data))
 }
 
 // callTool calls a tool and checks for MCP tool errors, returning a
 // structured CLI error with the right exit code on failure.
-func callTool(ctx context.Context, token, tool string, args map[string]any) (*mcp.ToolResult, error) {
-	result, err := mcp.CallTool(ctx, token, tool, args)
+func callTool(ctx context.Context, a app, token, tool string, args map[string]any) (*mcp.ToolResult, error) {
+	result, err := a.callTool(ctx, token, tool, args)
 	if err != nil {
 		return nil, err
 	}

@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
 )
 
-func newDBCmd() *cobra.Command {
+func newDBCmd(a app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "db <id> <verb> [args...]",
 		Short: "Operate on a Notion database",
@@ -34,13 +33,13 @@ Verbs:
 
 			switch verb {
 			case "read":
-				return runDBRead(cmd, dbID)
+				return runDBRead(cmd, a, dbID)
 			case "query":
-				return runDBQuery(cmd, dbID, rest)
+				return runDBQuery(cmd, a, dbID, rest)
 			case "create":
-				return runDBCreate(cmd, dbID, rest)
+				return runDBCreate(cmd, a, dbID, rest)
 			case "update":
-				return runDBUpdate(cmd, dbID)
+				return runDBUpdate(cmd, a, dbID)
 			default:
 				return fmt.Errorf("unknown verb %q; expected: read, query, create, update", verb)
 			}
@@ -53,8 +52,8 @@ Verbs:
 	return cmd
 }
 
-func runDBRead(cmd *cobra.Command, dbID string) error {
-	tok, err := auth.EnsureValidToken(cmd.Context())
+func runDBRead(cmd *cobra.Command, a app, dbID string) error {
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -63,10 +62,10 @@ func runDBRead(cmd *cobra.Command, dbID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-fetch", fetchArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-fetch", fetchArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-fetch", fetchArgs)
 	if err != nil {
 		return err
 	}
@@ -75,17 +74,17 @@ func runDBRead(cmd *cobra.Command, dbID string) error {
 	if err != nil {
 		return err
 	}
-	return output.Print(db)
+	return a.print(db)
 }
 
 var tablePlaceholder = regexp.MustCompile(`(?i)\b(FROM|JOIN)\s+_\b`)
 
-func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
+func runDBQuery(cmd *cobra.Command, a app, dbID string, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("query requires a SQL query argument")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -116,10 +115,10 @@ func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-query-data-sources", toolArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-query-data-sources", toolArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-query-data-sources", toolArgs)
 	if err != nil {
 		return err
 	}
@@ -128,16 +127,16 @@ func runDBQuery(cmd *cobra.Command, dbID string, args []string) error {
 	if err != nil {
 		return err
 	}
-	return output.Print(rows)
+	return a.print(rows)
 }
 
-func runDBCreate(cmd *cobra.Command, dbID string, args []string) error {
+func runDBCreate(cmd *cobra.Command, a app, dbID string, args []string) error {
 	propsStr, _ := cmd.Flags().GetString("props")
 	if propsStr == "" {
 		return fmt.Errorf("create requires --props flag with JSON properties")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -166,10 +165,10 @@ func runDBCreate(cmd *cobra.Command, dbID string, args []string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 	}
 
-	result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 	if err != nil {
 		return err
 	}
@@ -178,10 +177,10 @@ func runDBCreate(cmd *cobra.Command, dbID string, args []string) error {
 	if err != nil {
 		return err
 	}
-	return output.Print(created)
+	return a.print(created)
 }
 
-func runDBUpdate(cmd *cobra.Command, dbID string) error {
+func runDBUpdate(cmd *cobra.Command, a app, dbID string) error {
 	title, _ := cmd.Flags().GetString("title")
 	schema, _ := cmd.Flags().GetString("schema")
 
@@ -189,7 +188,7 @@ func runDBUpdate(cmd *cobra.Command, dbID string) error {
 		return fmt.Errorf("update requires --title and/or --schema flag")
 	}
 
-	tok, err := auth.EnsureValidToken(cmd.Context())
+	tok, err := a.ensureToken(cmd.Context())
 	if err != nil {
 		return output.AuthError(err.Error())
 	}
@@ -206,11 +205,11 @@ func runDBUpdate(cmd *cobra.Command, dbID string) error {
 
 	raw, _ := cmd.Flags().GetBool("raw")
 	if raw {
-		return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs)
+		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-update-data-source", toolArgs)
 	}
 
-	if _, err := callTool(cmd.Context(), tok.AccessToken, "notion-update-data-source", toolArgs); err != nil {
+	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-update-data-source", toolArgs); err != nil {
 		return err
 	}
-	return output.Print(map[string]any{"id": dbID, "ok": true})
+	return a.print(map[string]any{"id": dbID, "ok": true})
 }

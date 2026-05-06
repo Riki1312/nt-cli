@@ -3,13 +3,12 @@ package cli
 import (
 	"fmt"
 
-	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/output"
 	"github.com/Riki1312/nt-cli/internal/transform"
 	"github.com/spf13/cobra"
 )
 
-func newCreateCmd() *cobra.Command {
+func newCreateCmd(a app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [content]",
 		Short: "Create a standalone page at the workspace root",
@@ -20,7 +19,7 @@ func newCreateCmd() *cobra.Command {
 				return fmt.Errorf("create requires --title flag")
 			}
 
-			tok, err := auth.EnsureValidToken(cmd.Context())
+			tok, err := a.ensureToken(cmd.Context())
 			if err != nil {
 				return output.AuthError(err.Error())
 			}
@@ -43,10 +42,10 @@ func newCreateCmd() *cobra.Command {
 
 			raw, _ := cmd.Flags().GetBool("raw")
 			if raw {
-				return callAndPrintRaw(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+				return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 			}
 
-			result, err := callTool(cmd.Context(), tok.AccessToken, "notion-create-pages", toolArgs)
+			result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-create-pages", toolArgs)
 			if err != nil {
 				return err
 			}
@@ -55,7 +54,7 @@ func newCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return output.Print(created)
+			return a.print(created)
 		},
 	}
 	cmd.Flags().String("title", "", "page title (required)")
