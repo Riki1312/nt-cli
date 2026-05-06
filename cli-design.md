@@ -179,5 +179,5 @@ nt db <data-source-id> query "SELECT * FROM _ WHERE Status = ?" --params "In Pro
 
 | Flag | Description |
 |------|-------------|
-| `--raw` | Print the raw MCP JSON-RPC response (for debugging) |
+| `--raw` | Print the raw MCP tool result (for debugging) |
 | `--verbose` | Print request/response details to stderr |

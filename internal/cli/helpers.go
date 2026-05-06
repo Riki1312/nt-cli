@@ -11,8 +11,7 @@ import (
 	"github.com/Riki1312/nt-cli/internal/output"
 )
 
-// callAndPrintRaw calls a tool and prints the raw JSON result, returning an
-// error (with proper exit code) if the MCP tool reports a failure.
+// callAndPrintRaw calls a tool and prints the raw MCP tool result.
 func callAndPrintRaw(ctx context.Context, a app, token, tool string, args map[string]any) error {
 	result, data, err := a.callToolRaw(ctx, token, tool, args)
 	if err != nil {

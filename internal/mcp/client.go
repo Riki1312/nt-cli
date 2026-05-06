@@ -74,18 +74,31 @@ func CallTool(ctx context.Context, accessToken, toolName string, args map[string
 	return tr, err
 }
 
-// CallToolRaw is like CallTool but also returns the raw MCP result as JSON bytes.
+// CallToolRaw is like CallTool but also returns the MCP tool result as JSON bytes.
 func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, json.RawMessage, error) {
-	result, err := CallTool(ctx, accessToken, toolName, args)
-	if err != nil {
-		return nil, nil, err
-	}
+	var tr *ToolResult
+	var raw json.RawMessage
+	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
+			Name:      toolName,
+			Arguments: args,
+		})
+		if err != nil {
+			return fmt.Errorf("calling tool %s: %w", toolName, err)
+		}
 
-	raw, err := json.Marshal(result)
-	if err != nil {
-		return nil, nil, fmt.Errorf("marshaling result: %w", err)
-	}
-	return result, raw, nil
+		tr, err = convertResult(result)
+		if err != nil {
+			return err
+		}
+
+		raw, err = json.Marshal(result)
+		if err != nil {
+			return fmt.Errorf("marshaling result: %w", err)
+		}
+		return nil
+	})
+	return tr, raw, err
 }
 
 // ListTools connects to the Notion MCP server and returns the available tool names.
