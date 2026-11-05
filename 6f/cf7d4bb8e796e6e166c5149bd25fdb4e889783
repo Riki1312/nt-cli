@@ -1,0 +1,41 @@
+context/current.md
+  ai_agent 5,7,9,24-32
+internal/transform/comments.go
+  s_e0c5ff9fbb4491::t_696f98ffac9d77 86-394
+internal/cli/comments_test.go
+  s_e0c5ff9fbb4491::t_696f98ffac9d77 26-82,92-96,98,100,113-117,209-223
+README.md
+  ai_agent 39-46,59-67
+cli-design.md
+  ai_agent 7,14,45-136,184,235,247
+internal/transform/comments_test.go
+  s_e0c5ff9fbb4491::t_696f98ffac9d77 73
+internal/transform/testdata/comments.golden.json
+  ai_agent 1-70
+internal/transform/testdata/comments_response.json
+  ai_agent 1-4
+internal/transform/testdata/comment_created_response.json
+  ai_agent 1-7
+internal/transform/testdata/comment_reactions_response.json
+  ai_agent 1-12
+internal/cli/comments.go
+  ai_agent 107-109,111-112,114,150-154,198-204,206-210,213-217
+context/comments.md
+  ai_agent 3,26,28,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6fcf7d4bb8e796e6e166c5149bd25fdb4e889783",
+  "prompts": {},
+  "sessions": {
+    "s_e0c5ff9fbb4491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a254-71ba-7720-be17-f3da2676f26d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Riccardo <riki.brero@gmail.com>"
+    }
+  }
+}
