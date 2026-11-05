@@ -1,0 +1,19 @@
+context/current.md
+  s_e0c5ff9fbb4491::t_d4d636dee724d0 59-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "03956478f1464056af228725191bdddfd08bacbc",
+  "prompts": {},
+  "sessions": {
+    "s_e0c5ff9fbb4491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a254-71ba-7720-be17-f3da2676f26d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Riccardo <riki.brero@gmail.com>"
+    }
+  }
+}
