@@ -1,0 +1,32 @@
+internal/cli/comments_test.go
+  s_e0c5ff9fbb4491::t_7b550f81c8e6a4 5,119-147
+  s_e0c5ff9fbb4491::t_a5dcd96715bea8 1-4,6-118,148-150
+context/current.md
+  ai_agent 7
+internal/cli/comments.go
+  s_e0c5ff9fbb4491::t_a5dcd96715bea8 85,112-117,125-127,159-161,257,266-275
+  s_e0c5ff9fbb4491::t_7b550f81c8e6a4 30-68,91-107,118,139-154,165-253,265,280-282
+context/sessions/2026-11-05.md
+  ai_agent 23
+  s_e0c5ff9fbb4491::t_7b550f81c8e6a4 13-20
+internal/cli/page.go
+  s_e0c5ff9fbb4491::t_7b550f81c8e6a4 35-41
+context/comments.md
+  s_e0c5ff9fbb4491::t_7b550f81c8e6a4 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c12c64fea359c96b5bb6eec8ad23bcd1d9b85959",
+  "prompts": {},
+  "sessions": {
+    "s_e0c5ff9fbb4491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a254-71ba-7720-be17-f3da2676f26d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Riccardo <riki.brero@gmail.com>"
+    }
+  }
+}
