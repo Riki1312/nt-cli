@@ -4,14 +4,14 @@ The `nt` command structure, output format, and conventions.
 
 ## Command Structure
 
-Commands are split into two categories: **resource-scoped** (operate on a specific page or database) and **workspace-level** (operate across the workspace).
+Commands are split into two categories: **resource-scoped** (operate on a specific page, database, discussion, or comment) and **workspace-level** (operate across the workspace).
 
 ```
 nt <resource-type> <id> <verb> [flags]    # resource-scoped
 nt <verb> [args] [flags]                  # workspace-level
 ```
 
-Resource-scoped commands put the target ID front and center. This makes it trivial to restrict agent access: allow `nt page abc123 *` and deny everything else.
+Resource-scoped commands put the target ID front and center. This makes the target visible to callers enforcing command permissions. Notion permissions still apply to the connected account.
 
 ## Resource Commands
 
@@ -42,8 +42,98 @@ nt page <id> comment '<text>'                  # add a comment
 | `create`    | `notion-create-pages`                              | `parent: {"page_id": "<id>"}`                                                                                                                                                                                                                                                                                                                                                                                           |
 | `move`      | `notion-move-pages`                                |                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `duplicate` | `notion-duplicate-page`                            | Async; returns new page ID immediately but content populates later                                                                                                                                                                                                                                                                                                                                                      |
-| `comments`  | `notion-get-comments`                              | Returns XML-formatted discussion threads                                                                                                                                                                                                                                                                                                                                                                                |
-| `comment`   | `notion-create-comment`                            | Uses `rich_text` format for content                                                                                                                                                                                                                                                                                                                                                                                     |
+| `comments`  | `notion-get-comments`                              | Structured JSON with discussion/comment records, counts, and continuation metadata                                                                                                                                                                                                                                                                                                                                      |
+| `comment`   | `notion-create-comment`                            | Uses `markdown`; `--select` adds native `selection_with_ellipsis` targeting                                                                                                                                                                                                                                                                                                                                             |
+
+### Comments and discussions
+
+```sh
+nt page PAGE_ID comments [--include-resolved]
+nt page PAGE_ID comment 'Comment'
+nt page PAGE_ID comment --select 'Passage start...passage end' - < comment.md
+nt discussion DISCUSSION_URL read [--cursor CURSOR] [--include-resolved]
+nt discussion DISCUSSION_URL reply - < reply.md
+nt discussion DISCUSSION_ID read --page PAGE_ID
+nt discussion DISCUSSION_ID reply --page PAGE_ID 'Reply'
+nt comment COMMENT_ID react '👀'
+nt comment COMMENT_ID unreact '👀'
+```
+
+A `discussion://page/block/discussion` URL provides the page and discussion target. A bare discussion ID requires `--page`; a URL and `--page` cannot be combined. Reads use `notion-get-comments`; replies use `notion-create-comment` with that discussion ID. The CLI rejects irrelevant flags before authentication.
+
+Comment/reply content supports the hosted tool's inline Markdown and mention syntax. Text arguments accept `-` for stdin, preserving valid nonempty UTF-8 up to 1 MiB. `--select` passes Notion's native `selection_with_ellipsis`: use the beginning and end of a unique passage, separated by `...`. A match within one block creates an inline highlight; otherwise the comment may attach to the block where the match starts. A missing match fails; nt does not fall back to a page comment.
+
+Reactions use `notion-set-comment-reaction` to set the connected account's own state. Supply a standard Unicode emoji, not a shortcode. Repeating `react` or `unreact` is idempotent. Notion plan and permission restrictions remain errors. Reactions do not resolve discussions.
+
+#### Read output
+
+This structured output replaces the opaque comment payload in v0.3.0:
+
+```json
+{
+  "suggested_edits_status": "included",
+  "shown_count": 1,
+  "total_count": 1,
+  "omitted_truncated": false,
+  "omitted_discussions": [],
+  "discussions": [
+    {
+      "id": "discussion://page/block/discussion",
+      "type": "comment",
+      "context": "inline",
+      "text_context": "Selected passage",
+      "resolved": false,
+      "comment_count": 1,
+      "total_comment_count": 1,
+      "comments": [
+        {
+          "id": "comment-id",
+          "user_url": "user://author-id/author@example.invalid",
+          "user_id": "author-id",
+          "datetime": "2026-01-01T09:00:00.000Z",
+          "by_you": true,
+          "content": "<b>Please review</b><br />Second line."
+        }
+      ]
+    }
+  ],
+  "complete": true
+}
+```
+
+- Provider IDs, URLs, author references, timestamps, anchors, and resolution state are retained when supplied. `by_you` is the provider's own-account marker; `user_id` is extracted only from an explicit `user://` reference. These fields do not authorize a caller's workflow.
+- Comment `content` is opaque rendered inline markup. It can contain unescaped XML-like text; do not treat it as trusted HTML or parse it for author metadata. Extra metadata attributes appear under `attributes`.
+- `complete: false` means this response omits discussions or older comments. Fetch `omitted_discussions` by URL, and use a discussion's `next_cursor` for older comments. `omitted_truncated: true` means even the omitted-reference list is truncated. nt does not automatically fetch history.
+- Per-discussion counts describe supplied comments and the whole thread. A final cursor page can still have fewer comments than the whole discussion; no next cursor does not make that response complete.
+- Notion sometimes returns only availability metadata. In that case arrays are empty and `shown_count`, `total_count`, `omitted_truncated`, and `complete` are `null`. This is not evidence of an empty history. `complete: true` describes the supplied listing under the requested filters, not inaccessible or excluded resolved comments.
+- Comment listings currently expose no reaction state. Reaction commands return that state separately.
+
+#### Write output and uncertainty
+
+Creation and replies return actual acknowledged identifiers:
+
+```json
+{ "id": "comment-id", "discussion_id": "discussion-id" }
+```
+
+Reaction commands return the provider's current list for that comment:
+
+```json
+{
+  "comment_id": "comment-id",
+  "reactions": [
+    {
+      "emoji": "👀",
+      "reacted_by_current_user": true,
+      "reactor_urls": ["user://author-id"]
+    }
+  ]
+}
+```
+
+An empty `reactions` array is a confirmed empty list; missing data is an error. A reply acknowledgement naming another discussion is emitted for inspection and followed by `WRITE_UNCONFIRMED` on stderr.
+
+MCP calls have a one-minute operation limit and are never replayed by nt. Token refresh has a separate 30-second limit. A lost response or unreadable acknowledgement may follow a completed write: inspect the discussion before posting again. Unsupported framing or inconsistent counts fail visibly. `--raw` bypasses normalization and returns the original MCP result, without another call or write.
 
 ### Databases - `nt db <id> <verb>`
 
@@ -91,7 +181,7 @@ nt teams                          # list teams/teamspaces
 
 ### JSON by default
 
-All commands output JSON to stdout. No exceptions. Content fields contain Notion-flavored Markdown as strings.
+Command results are JSON on stdout. Page content is Notion-flavored Markdown; comment content retains rendered inline markup. Help and version use the standard CLI display.
 
 **`nt search`** - array of results:
 
@@ -142,7 +232,7 @@ All commands output JSON to stdout. No exceptions. Content fields contain Notion
 
 ## Error Handling
 
-Errors go to **stderr** as JSON. Stdout remains clean for piping.
+Errors go to **stderr** as JSON. Stdout contains only result JSON; an unconfirmed reply can include the actual acknowledged IDs for inspection.
 
 ```json
 { "error": "page not found", "code": "NOT_FOUND" }
@@ -154,7 +244,7 @@ Exit codes:
 - `1` - general error
 - `2` - authentication error (expired token, not logged in)
 - `3` - not found
-- `4` - rate limited (includes `retry_after` in error JSON)
+- `4` - rate limited
 - `5` - permission denied
 
 ## Stdin Support

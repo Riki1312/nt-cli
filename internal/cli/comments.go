@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -105,18 +104,14 @@ func newCommentCmd(a app) *cobra.Command {
 				return err
 			}
 
-			var response map[string]any
-			if json.Unmarshal([]byte(result.TextContent()), &response) != nil || response == nil {
-				return fmt.Errorf("unrecognized reaction response; inspect the comment")
+			state, err := transform.CommentReactions(result)
+			if err != nil {
+				return fmt.Errorf("reaction response is unconfirmed; inspect the comment: %w", err)
 			}
-			if problem, found := response["error"]; found && problem != nil && problem != "" {
-				return output.ToolError(fmt.Sprint(problem))
+			if !sameCommentID(state.CommentID, args[0]) {
+				return output.NewError(output.ExitError, "WRITE_UNCONFIRMED", "reaction response identifies another comment; inspect before retrying")
 			}
-			if response["success"] == false || response["ok"] == false {
-				return output.ToolError("Notion did not confirm the reaction change")
-			}
-
-			return a.print(response)
+			return a.print(state)
 		},
 	}
 }
@@ -152,7 +147,11 @@ func readComments(cmd *cobra.Command, a app, request map[string]any) error {
 		return err
 	}
 
-	return a.print(transform.Comments(result))
+	list, err := transform.Comments(result)
+	if err != nil {
+		return err
+	}
+	return a.print(list)
 }
 
 func runPageComment(cmd *cobra.Command, a app, pageID string, args []string) error {
@@ -196,20 +195,26 @@ func postComment(cmd *cobra.Command, a app, request map[string]any) error {
 		return fmt.Errorf("comment request failed; inspect the discussion before posting again: %w", err)
 	}
 
-	// Never manufacture a created identifier from the requested page or discussion.
-	for _, content := range result.Content {
-		if content.Type != "text" {
-			continue
+	posted, err := transform.PostedComment(result)
+	if err != nil {
+		return output.NewError(output.ExitError, "WRITE_UNCONFIRMED", err.Error()+"; inspect the discussion before posting again")
+	}
+	if target, ok := request["discussion_id"].(string); ok {
+		if strings.HasPrefix(target, "discussion://") {
+			target = target[strings.LastIndex(target, "/")+1:]
 		}
-		var posted struct {
-			ID           string `json:"id"`
-			DiscussionID string `json:"discussion_id"`
-		}
-		if json.Unmarshal([]byte(content.Text), &posted) == nil && posted.ID != "" && posted.DiscussionID != "" {
-			return a.print(posted)
+		if !sameCommentID(posted.DiscussionID, target) {
+			if err := a.print(posted); err != nil {
+				return err
+			}
+			return output.NewError(output.ExitError, "WRITE_UNCONFIRMED", "Notion acknowledged a different discussion; inspect the returned IDs before posting again")
 		}
 	}
-	return output.NewError(output.ExitError, "WRITE_UNCONFIRMED", "comment response has no verified comment/discussion IDs; inspect the discussion before posting again")
+	return a.print(posted)
+}
+
+func sameCommentID(left, right string) bool {
+	return strings.EqualFold(strings.ReplaceAll(left, "-", ""), strings.ReplaceAll(right, "-", ""))
 }
 
 func commentText(cmd *cobra.Command, verb string, args []string) (string, error) {

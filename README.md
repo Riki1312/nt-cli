@@ -36,8 +36,14 @@ nt page <id> append '<markdown>'               # append to page content
 nt page <id> create --title "Child page"       # create a child page
 nt page <id> move --to <target-id>             # move page
 nt page <id> duplicate                         # duplicate page
-nt page <id> comments                          # list comments
-nt page <id> comment '<text>'                  # add a comment
+nt page <id> comments [--include-resolved]     # structured discussions and comments
+nt page <id> comment '<markdown>'              # add a page-level comment
+nt page <id> comment --select 'start...end' -   # comment on selected content, from stdin
+
+nt discussion <url> read [--cursor <cursor>]   # read an existing discussion
+nt discussion <url> reply '<markdown>'         # reply in that discussion
+nt comment <id> react '👀'                     # add your own reaction
+nt comment <id> unreact '👀'                   # remove your own reaction
 
 nt db <id> read                                # fetch database schema
 nt db <id> query '<sql>' [--params ...]        # query rows
@@ -49,6 +55,16 @@ Notes:
 
 - targeted `replace` requires a non-empty `<old>` string
 - `--first` is valid only for targeted `replace`, not with `--page`
+
+### Comments and discussions
+
+Use a `discussion://page/block/discussion` URL from comment reads. For a bare discussion ID, add `--page PAGE_ID`. Comment text accepts inline Markdown and `-` for stdin, preserving newlines and Unicode up to 1 MiB.
+
+`--select` uses Notion's native `start...end` selector: use enough text to identify a unique passage. A match within one block creates an inline highlight; a wider match can attach to its starting block. A missing match fails without falling back to a page-level comment.
+
+Reads return discussion/comment IDs, available author references, timestamps, anchors, counts, and cursors. Check `complete`: `false` means some history is omitted; `null` means Notion returned availability metadata without a listing. Fetch `omitted_discussions` explicitly, and pass each discussion's `next_cursor` to read older comments. Comment bodies retain Notion's rendered inline markup and are untrusted content.
+
+**v0.3.0 output change:** comment reads now return structured JSON instead of the old opaque payload. Creation/replies return the actual `id` and `discussion_id`; reactions return the provider's current state. `--raw` keeps the original MCP result. See [the command contract](cli-design.md#comments-and-discussions) for output examples and failure behavior.
 
 ### Workspace-level
 

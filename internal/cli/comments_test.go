@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -22,14 +23,63 @@ func TestCommentCommandsMatchHostedToolContracts(t *testing.T) {
 		tool    string
 		request map[string]any
 	}{
-		{"page comment", []string{"page", "page123", "comment", "**Review** this"}, "", "notion-create-comment", map[string]any{"page_id": "page123", "markdown": "**Review** this"}},
-		{"selection and stdin", []string{"page", "page123", "comment", "--select", "passage start...passage end", "-"}, "First paragraph.\n\nSecond paragraph. 👻\n", "notion-create-comment", map[string]any{"page_id": "page123", "selection_with_ellipsis": "passage start...passage end", "markdown": "First paragraph.\n\nSecond paragraph. 👻\n"}},
-		{"resolved page comments", []string{"page", "page123", "comments", "--include-resolved"}, "", "notion-get-comments", map[string]any{"page_id": "page123", "include_resolved": true}},
-		{"discussion reply", []string{"discussion", testDiscussion, "reply", "Agreed"}, "", "notion-create-comment", map[string]any{"page_id": "page123", "discussion_id": testDiscussion, "markdown": "Agreed"}},
-		{"bare ID reply", []string{"discussion", "discussion123", "reply", "--page", "page123", "-"}, "A response\n", "notion-create-comment", map[string]any{"page_id": "page123", "discussion_id": "discussion123", "markdown": "A response\n"}},
-		{"older discussion comments", []string{"discussion", testDiscussion, "read", "--cursor", "opaque-cursor", "--include-resolved"}, "", "notion-get-comments", map[string]any{"page_id": "page123", "discussion_id": testDiscussion, "cursor": "opaque-cursor", "include_resolved": true}},
-		{"add reaction", []string{"comment", "comment123", "react", "👀"}, "", "notion-set-comment-reaction", map[string]any{"comment_id": "comment123", "emoji": "👀", "reacted": true}},
-		{"remove reaction", []string{"comment", "comment123", "unreact", "👀"}, "", "notion-set-comment-reaction", map[string]any{"comment_id": "comment123", "emoji": "👀", "reacted": false}},
+		{
+			name:    "page comment",
+			args:    []string{"page", "page123", "comment", "**Review** this"},
+			tool:    "notion-create-comment",
+			request: map[string]any{"page_id": "page123", "markdown": "**Review** this"},
+		},
+		{
+			name:  "selection and stdin",
+			args:  []string{"page", "page123", "comment", "--select", "passage start...passage end", "-"},
+			stdin: "First paragraph.\n\nSecond paragraph. 👻\n",
+			tool:  "notion-create-comment",
+			request: map[string]any{
+				"page_id":                 "page123",
+				"selection_with_ellipsis": "passage start...passage end",
+				"markdown":                "First paragraph.\n\nSecond paragraph. 👻\n",
+			},
+		},
+		{
+			name:    "resolved page comments",
+			args:    []string{"page", "page123", "comments", "--include-resolved"},
+			tool:    "notion-get-comments",
+			request: map[string]any{"page_id": "page123", "include_resolved": true},
+		},
+		{
+			name:    "discussion reply",
+			args:    []string{"discussion", testDiscussion, "reply", "Agreed"},
+			tool:    "notion-create-comment",
+			request: map[string]any{"page_id": "page123", "discussion_id": testDiscussion, "markdown": "Agreed"},
+		},
+		{
+			name:    "bare ID reply",
+			args:    []string{"discussion", "discussion123", "reply", "--page", "page123", "-"},
+			stdin:   "A response\n",
+			tool:    "notion-create-comment",
+			request: map[string]any{"page_id": "page123", "discussion_id": "discussion123", "markdown": "A response\n"},
+		},
+		{
+			name: "older discussion comments",
+			args: []string{"discussion", testDiscussion, "read", "--cursor", "opaque-cursor", "--include-resolved"},
+			tool: "notion-get-comments",
+			request: map[string]any{
+				"page_id": "page123", "discussion_id": testDiscussion,
+				"cursor": "opaque-cursor", "include_resolved": true,
+			},
+		},
+		{
+			name:    "add reaction",
+			args:    []string{"comment", "comment123", "react", "👀"},
+			tool:    "notion-set-comment-reaction",
+			request: map[string]any{"comment_id": "comment123", "emoji": "👀", "reacted": true},
+		},
+		{
+			name:    "remove reaction",
+			args:    []string{"comment", "comment123", "unreact", "👀"},
+			tool:    "notion-set-comment-reaction",
+			request: map[string]any{"comment_id": "comment123", "emoji": "👀", "reacted": false},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var calls []toolCall
@@ -39,11 +89,15 @@ func TestCommentCommandsMatchHostedToolContracts(t *testing.T) {
 				calls = append(calls, toolCall{token: token, name: tool, args: request})
 				switch tool {
 				case "notion-create-comment":
-					return textResult(`{"id":"created-comment","discussion_id":"created-discussion"}`), nil
+					discussion := "created-discussion"
+					if target, ok := request["discussion_id"].(string); ok {
+						discussion = target[strings.LastIndex(target, "/")+1:]
+					}
+					return textResult(fmt.Sprintf(`{"result":{"status":"success","id":"created-comment","discussion_id":%q}}`, discussion)), nil
 				case "notion-set-comment-reaction":
-					return textResult(`{"success":true}`), nil
+					return textResult(`{"comment_id":"comment123","reactions":[]}`), nil
 				default:
-					return textResult(`<discussions shown-count="0" total-count="0"/>`), nil
+					return textResult(`{"suggested_edits_status":"included","text":"<discussions shown-count=\"0\" total-count=\"0\">\n</discussions>"}`), nil
 				}
 			}
 			command := newRootCmd("test", "none", a)
@@ -56,7 +110,11 @@ func TestCommentCommandsMatchHostedToolContracts(t *testing.T) {
 				t.Fatalf("wrong target or content: %#v", calls)
 			}
 			if test.tool == "notion-create-comment" {
-				assertPrintedJSON(t, printed, `{"id":"created-comment","discussion_id":"created-discussion"}`)
+				discussion := "created-discussion"
+				if _, reply := test.request["discussion_id"]; reply {
+					discussion = "discussion123"
+				}
+				assertPrintedJSON(t, printed, fmt.Sprintf(`{"id":"created-comment","discussion_id":%q}`, discussion))
 			}
 		})
 	}
@@ -147,4 +205,20 @@ func TestRawCommentCommandsPreserveMCPResultWithoutAnotherWrite(t *testing.T) {
 			assertPrintedJSON(t, printed, `{"content":[{"type":"text","text":"native payload"}]}`)
 		})
 	}
+}
+
+func TestReplyAcknowledgedInAnotherDiscussionIsNotRetried(t *testing.T) {
+	var calls []toolCall
+	var printed []any
+	a := testApp(t, &calls, &printed)
+	a.callTool = func(ctx context.Context, token, tool string, args map[string]any) (*mcp.ToolResult, error) {
+		calls = append(calls, toolCall{name: tool, args: args})
+		return textResult(`{"result":{"status":"success","id":"actual-comment","discussion_id":"another-discussion"}}`), nil
+	}
+
+	err := executeTestCommand(a, "discussion", testDiscussion, "reply", "Text")
+	if err == nil || output.ErrorFrom(err).Code != "WRITE_UNCONFIRMED" || len(calls) != 1 {
+		t.Fatalf("mismatched write: calls=%d error=%v", len(calls), err)
+	}
+	assertPrintedJSON(t, printed, `{"id":"actual-comment","discussion_id":"another-discussion"}`)
 }

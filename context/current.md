@@ -2,13 +2,11 @@
 
 ## Active Work
 
-Preparing v0.3.0 for structured comment reads, selected-content comments, discussion replies, and own-account reactions. [Comments design](comments.md) owns the requested behavior and release scope. The hosted MCP schemas were inspected using a temporary read-only probe; consumer installations remain unchanged.
+Preparing v0.3.0. Structured discussion/comment reads, selected-content comments, explicit discussion replies, and own-account reactions are implemented. [Comments scope](comments.md) and [the command contract](../cli-design.md#comments-and-discussions) describe the boundary and JSON output change.
 
-Schema discovery now supports `nt tools NAME` and paginated tool listing with a bounded MCP call lifetime. This slice passes race tests, vet, formatting, and builds on Go 1.24 and the release toolchain. Request-side selected comments, discussion reads/replies, and own-account reactions are implemented and tested against the live input contracts. Reads still use the existing opaque comment payload; structured normalization and live acceptance remain unfinished. The hosted tools publish input schemas but no output schemas; a read-only check of an empty page returned suggestion-status metadata alone. An agreed scratch page is now available for observing a controlled nonempty discussion and verifying selected comments/replies/reactions before response normalization and publication.
+Live acceptance on an authorized scratch page verified page and inline comments, replies in the original discussion, and idempotent reaction add/remove. Actual response envelopes informed synthetic fixtures. Rendered comment bodies are opaque content; only line-framed metadata is parsed. Counts/cursors retain partial histories; availability-only responses have unknown completeness.
 
-Quality CI and tag-release gates are prepared with pinned action/tool revisions. Snapshot packaging produced all four archives and the existing Homebrew formula without publishing. The formula publisher has a documented GoReleaser v2 deprecation; archive syntax is updated.
-
-The v0.2.1 baseline remains implemented below. Tests and vet passed before this work.
+Pinned quality CI and tag-release gates are in place. Race tests, vet, formatting, and native builds pass. Final normalized live checks, minimum-Go validation, snapshot packaging, publication, and consumer installation remain. The published baseline is v0.2.1; no automatic conversation routing is enabled by this CLI release.
 
 ## What Works
 
@@ -23,8 +21,15 @@ The v0.2.1 baseline remains implemented below. Tests and vet passed before this 
 - `create --title "..."` - create child page
 - `move --to <id>` - move page to new parent
 - `duplicate` - duplicate page (async)
-- `comments` - list comments (XML format)
-- `comment '<text>'` - add a comment
+- `comments` - structured discussions/comments with counts, authors, anchors, and continuation metadata
+- `comment '<markdown>'` - add a page or selected-content comment
+
+### Discussion and comment commands
+
+- `discussion <url> read` - inspect a discussion; cursor reads fetch older comments
+- `discussion <url> reply '<markdown>'` - reply within that discussion
+- Bare discussion IDs require `--page PAGE_ID`
+- `comment <id> react|unreact EMOJI` - set the connected user's own reaction state
 
 ### Database commands (`nt db <id> <verb>`)
 

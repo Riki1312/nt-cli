@@ -1,6 +1,6 @@
 # Comments and discussions
 
-Design for nt v0.3.0. MCP request shapes were checked against the authenticated hosted tools. This document owns the feature direction; `cli-design.md` will own the implemented command contract.
+Scope for nt v0.3.0. MCP request shapes were checked against the authenticated hosted tools. This document records the feature boundary; [cli-design.md](../cli-design.md#comments-and-discussions) owns the implemented command and output contract.
 
 ## Purpose and boundary
 
@@ -23,13 +23,13 @@ nt tools TOOL_NAME
 
 A discussion URL contains page, block, and discussion identifiers. Infer the page from that URL; `--page` is only valid for a bare discussion ID. Reject conflicting targets and irrelevant flags before authentication or network calls. Text arguments accept `-` for stdin and preserve their UTF-8 content, with a 1 MiB client limit. Markdown content uses the provider's supported inline formatting and mention syntax.
 
-`--select` passes Notion's native `selection_with_ellipsis` selector. A unique match within one block creates an inline highlight; otherwise Notion can attach the comment to the block where the match starts. No match fails. The CLI adds no fuzzy matching or automatic page-level fallback. Exact selected-range behavior requires live acceptance.
+`--select` passes Notion's native `selection_with_ellipsis` selector. A unique match within one block creates an inline highlight; otherwise Notion can attach the comment to the block where the match starts. No match fails. The CLI adds no fuzzy matching or automatic page-level fallback. Live acceptance verified an inline anchor on a unique passage.
 
-Reactions set the connected user's state using `notion-set-comment-reaction`: `reacted=true` to add, `false` to remove. Repeating the same state is idempotent. Provider plan/capability restrictions must remain visible; current documentation restricts these MCP controls to Business/Enterprise. Reactions do not resolve discussions.
+Reactions set the connected user's state using `notion-set-comment-reaction`: `reacted=true` to add, `false` to remove. Repeating the same state is idempotent. Provider plan/capability restrictions must remain visible; current documentation restricts these MCP controls to Business/Enterprise. The available test workspace accepted these operations without a plan change. Reactions do not resolve discussions.
 
 ## Output and completeness
 
-Replace the opaque comment XML string with JSON records for discussions and comments. Preserve provider IDs/URLs, available author information, self markers, timestamps, anchors, resolution state, and reaction information where supplied. Do not infer identities or fabricate missing metadata.
+Replace the opaque comment XML string with JSON records for discussions and comments. Preserve provider IDs/URLs, available author information, self markers, timestamps, anchors, and resolution state. Reactions have their own explicit state response; comment listings do not currently expose them. Do not infer identities or fabricate missing metadata.
 
 Expose `shown-count`, `total-count`, omitted discussion URLs, `omitted-truncated`, per-discussion comment counts, and `next-cursor`. Fetch omitted discussions explicitly; use a discussion cursor to retrieve older comments. Do not silently report a partial result as complete or automatically fetch an unbounded history.
 
