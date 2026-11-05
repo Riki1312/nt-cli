@@ -282,7 +282,11 @@ func exchangeCode(ctx context.Context, metadata *serverMetadata, clientID, code,
 }
 
 // RefreshToken attempts to refresh the access token using the refresh token.
+// Discovery and refresh share a 30-second limit; earlier cancellation is respected.
 func RefreshToken(ctx context.Context, tok *Token) (*Token, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	if tok.RefreshToken == "" {
 		return nil, fmt.Errorf("no refresh token available; run 'nt login'")
 	}
