@@ -1,12 +1,14 @@
 # Current State
 
-## Active Work
+## Current Work
 
-Preparing v0.3.0. Structured discussion/comment reads, selected-content comments, explicit discussion replies, and own-account reactions are implemented. [Comments scope](comments.md) and [the command contract](../cli-design.md#comments-and-discussions) describe the boundary and JSON output change.
+The v0.3.0 implementation provides structured discussion/comment reads, selected-content comments, discussion replies, and own-account reactions. [Comments scope](comments.md) and [the command contract](../cli-design.md#comments-and-discussions) own the boundary and JSON output change. [Acceptance evidence](sessions/2026-11-05.md) records verification and limitations.
 
-Live acceptance on an authorized scratch page verified page and inline comments, replies in the original discussion, and idempotent reaction add/remove. Actual response envelopes informed synthetic fixtures. Rendered comment bodies are opaque content; only line-framed metadata is parsed. Counts/cursors retain partial histories; availability-only responses have unknown completeness.
+An authorized scratch page verified page/inline comments, replies in the original discussion, multiline Unicode content, idempotent reaction add/remove, normalized receipts, and a failed selector without a page-level fallback. Synthetic fixtures cover partial histories and malformed responses. Metadata-only responses retain unknown completeness; rendered bodies remain opaque content.
 
-Pinned quality CI and tag-release gates are in place. Race tests, vet, formatting, and native builds pass. Final normalized live checks, minimum-Go validation, snapshot packaging, publication, and consumer installation remain. The published baseline is v0.2.1; no automatic conversation routing is enabled by this CLI release.
+Formatting, vet, race tests on Go 1.24.0 and the release toolchain, and native builds pass. Snapshot packaging produced all four platform archives and the existing Homebrew formula. Pinned CI gates tag publication. The formula publisher has a known GoReleaser v2 deprecation; cask migration is separate.
+
+Release publication and consumer installation are operational steps, not implied by source documentation. This CLI does not enable automatic Notion conversation routing.
 
 ## What Works
 

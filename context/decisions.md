@@ -51,3 +51,7 @@ Line count is a resource. New seams, helpers, comments, and tests should pay for
 ## 2026-11-05: Model discussions and comments as explicit CLI resources
 
 Discussion reads/replies use `nt discussion <target> <verb>`; own-account reactions use `nt comment <id> react|unreact`. Infer the required page from a `discussion://` URL, and require an explicit page for a bare discussion ID. This keeps targets explicit within the existing resource-first interface. Structured comment output retains incomplete-result metadata and continuation cursors. nt remains stateless; conversation routing and deduplication belong to its caller. See [the scoped design](comments.md).
+
+## 2026-11-05: Preserve opaque comment content and explicit completeness
+
+The hosted comment envelope renders XML-like metadata around bodies that are not valid XML. Parse only line-framed metadata opening tags, preserve each body as opaque content, and fail on unsupported framing or inconsistent counts. Never recover author identity from body text. Counts and cursors expose partial history; an availability-only response has unknown completeness. Mutation success requires actual provider identifiers. See [the command contract](../cli-design.md#comments-and-discussions).
