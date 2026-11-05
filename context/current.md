@@ -2,15 +2,18 @@
 
 ## Active Work
 
-All core commands implemented and tested end-to-end. Codebase reviewed and cleaned up.
-Latest implementation note, 2026-05-06: docs drift fixed for SQL database queries, transform golden tests added, and MCP/tool error classification now maps not found, auth, rate limit, and permission failures to documented exit codes.
-Latest testing note, 2026-05-06: CLI command handlers now use a private `app` dependency seam so command-level tests can fake auth/MCP/output. Added command tests for SQL query request shaping and read-then-write page replace, and removed the narrower overlapping page replacement unit test.
-Latest review note, 2026-05-06: fixed remaining docs drift, made `make test` and `make lint` use a repo-local Go build cache, added focused OAuth helper tests, made create transform results typed, made `--raw` return the raw MCP tool result, and tightened resource command arity.
-Latest polish note, 2026-05-06: `logout` now removes both token and OAuth client registration state, all Makefile Go targets use repo-local build/module caches, and comments transform output is typed.
+Preparing v0.3.0 for structured comment reads, selected-content comments, discussion replies, and own-account reactions. [Comments design](comments.md) owns the requested behavior and release scope. The hosted MCP schemas were inspected using a temporary read-only probe; consumer installations remain unchanged.
+
+Schema discovery now supports `nt tools NAME` and paginated tool listing with a bounded MCP call lifetime. This slice passes race tests, vet, formatting, and builds on Go 1.24 and the release toolchain. Feature commands are not implemented yet. The hosted tools publish input schemas but no output schemas; a read-only check of an empty page returned suggestion-status metadata alone. An agreed scratch page is needed to observe a controlled nonempty discussion and verify selected comments/replies/reactions before implementing response normalization and publishing.
+
+Quality CI and tag-release gates are prepared with pinned action/tool revisions. Snapshot packaging produced all four archives and the existing Homebrew formula without publishing. The formula publisher has a documented GoReleaser v2 deprecation; archive syntax is updated.
+
+The v0.2.1 baseline remains implemented below. Tests and vet passed before this work.
 
 ## What Works
 
 ### Page commands (`nt page <id> <verb>`)
+
 - `read` - fetch page with parsed properties and content
 - `set '<json>'` - update page properties
 - `replace '<old>' '<new>'` - find-and-replace content (all matches)
@@ -24,18 +27,21 @@ Latest polish note, 2026-05-06: `logout` now removes both token and OAuth client
 - `comment '<text>'` - add a comment
 
 ### Database commands (`nt db <id> <verb>`)
+
 - `read` - fetch database schema, SQLite DDL, templates, views
 - `query '<sql>'` - query rows with SQL; use `_` as table name, `--params` for parameterized queries
 - `create --props '<json>'` - create a row (uses data source ID)
 - `update --title/--schema` - update database schema
 
 ### Workspace commands
+
 - `search '<query>'` - workspace search (supports `--limit`, `--type`)
 - `create --title "..."` - standalone page at workspace root
 - `login` / `logout` - OAuth
 - `whoami` / `users` / `teams` - user and team info
 
 ### Infrastructure
+
 - All commands support `--raw` for raw MCP tool output
 - Token refresh works automatically
 - `logout` removes saved token and OAuth client registration files

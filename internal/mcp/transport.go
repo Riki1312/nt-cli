@@ -1,6 +1,9 @@
 package mcp
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+)
 
 // NotionMCPEndpoint is Notion's hosted MCP Streamable HTTP endpoint.
 const NotionMCPEndpoint = "https://mcp.notion.com/mcp"
@@ -18,9 +21,12 @@ func (a *authRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 }
 
 // NewAuthenticatedHTTPClient returns an http.Client that injects the given
-// bearer token into every request.
+// bearer token into each request. Requests time out after one minute and never
+// follow redirects, preserving the original target for credentials and writes.
 func NewAuthenticatedHTTPClient(accessToken string) *http.Client {
 	return &http.Client{
+		Timeout:       time.Minute,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 		Transport: &authRoundTripper{
 			token: accessToken,
 			inner: http.DefaultTransport,

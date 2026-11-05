@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const clientName = "nt-cli"
-const clientVersion = "0.1.0"
+
+var clientVersion = "dev"
 
 // ToolResult wraps the MCP tool call result for easier consumption.
 type ToolResult struct {
@@ -37,6 +39,9 @@ func (r *ToolResult) TextContent() string {
 // withSession connects to the Notion MCP server and calls fn with the session.
 // The session is closed after fn returns.
 func withSession(ctx context.Context, accessToken string, fn func(*sdkmcp.ClientSession) error) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	client := sdkmcp.NewClient(
 		&sdkmcp.Implementation{Name: clientName, Version: clientVersion},
 		nil,
@@ -101,20 +106,37 @@ func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[str
 	return tr, raw, err
 }
 
-// ListTools connects to the Notion MCP server and returns the available tool names.
-func ListTools(ctx context.Context, accessToken string) ([]string, error) {
-	var names []string
+// ToolDefinition describes a hosted tool and its JSON input/output schemas.
+type ToolDefinition struct {
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	InputSchema  any    `json:"inputSchema"`
+	OutputSchema any    `json:"outputSchema,omitempty"`
+}
+
+// ListTools discovers up to 1,000 hosted tools across all result pages.
+// Discovery has a one-minute deadline and fails instead of returning a partial list.
+func ListTools(ctx context.Context, accessToken string) ([]ToolDefinition, error) {
+	tools := []ToolDefinition{}
 	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
-		result, err := session.ListTools(ctx, &sdkmcp.ListToolsParams{})
-		if err != nil {
-			return fmt.Errorf("listing tools: %w", err)
-		}
-		for _, t := range result.Tools {
-			names = append(names, t.Name)
+		for tool, err := range session.Tools(ctx, nil) {
+			if err != nil {
+				return fmt.Errorf("listing tools: %w", err)
+			}
+			if len(tools) == 1000 {
+				return fmt.Errorf("tool discovery exceeds 1,000 results")
+			}
+			tools = append(tools, ToolDefinition{
+				Name: tool.Name, Description: tool.Description,
+				InputSchema: tool.InputSchema, OutputSchema: tool.OutputSchema,
+			})
 		}
 		return nil
 	})
-	return names, err
+	if err != nil {
+		return nil, err
+	}
+	return tools, nil
 }
 
 func convertResult(result *sdkmcp.CallToolResult) (*ToolResult, error) {

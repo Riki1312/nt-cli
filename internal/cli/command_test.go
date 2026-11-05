@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Riki1312/nt-cli/internal/auth"
 	"github.com/Riki1312/nt-cli/internal/mcp"
+	"github.com/Riki1312/nt-cli/internal/output"
 )
 
 type toolCall struct {
@@ -156,5 +158,33 @@ func assertPrintedJSON(t *testing.T, printed []any, want string) {
 	}
 	if string(got) != want {
 		t.Fatalf("printed JSON = %s, want %s", got, want)
+	}
+}
+
+func TestToolDiscoveryShowsSchemaOrNames(t *testing.T) {
+	for _, args := range [][]string{{"tools"}, {"tools", "notion-create-comment"}, {"tools", "missing"}} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			var calls []toolCall
+			var printed []any
+			a := testApp(t, &calls, &printed)
+			a.listTools = func(context.Context, string) ([]mcp.ToolDefinition, error) {
+				return []mcp.ToolDefinition{{Name: "notion-create-comment", InputSchema: map[string]any{"type": "object"}}}, nil
+			}
+			err := executeTestCommand(a, args...)
+			if len(args) == 2 && args[1] == "missing" {
+				if err == nil || output.ErrorFrom(err).ExitCode != output.ExitNotFound || len(printed) != 0 {
+					t.Fatalf("missing tool: output=%v, error=%v", printed, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(args) == 1 {
+				assertPrintedJSON(t, printed, `["notion-create-comment"]`)
+			} else {
+				assertPrintedJSON(t, printed, `{"name":"notion-create-comment","inputSchema":{"type":"object"}}`)
+			}
+		})
 	}
 }

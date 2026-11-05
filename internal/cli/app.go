@@ -15,7 +15,7 @@ type app struct {
 	logout      func() error
 	callTool    func(context.Context, string, string, map[string]any) (*mcp.ToolResult, error)
 	callToolRaw func(context.Context, string, string, map[string]any) (*mcp.ToolResult, json.RawMessage, error)
-	listTools   func(context.Context, string) ([]string, error)
+	listTools   func(context.Context, string) ([]mcp.ToolDefinition, error)
 	print       func(any) error
 	hint        func(string)
 }
