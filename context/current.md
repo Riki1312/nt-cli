@@ -56,6 +56,8 @@ Release publication and consumer installation are operational steps, not implied
 
 ## Key Limitations
 
+- Comment/discussion reads omit reaction details upstream, including raw MCP and the original Comment API. Missing details mean unavailable, not an empty list. Reaction writes return a state receipt; there is no separate read-only getter in the live MCP tool list. [The command contract](../cli-design.md#comments-and-discussions) owns this boundary.
+
 - `nt page <id> read` on a database returns empty content but includes a hint to use `nt db` instead
 - `append` uses read-then-replace (not `insert_content_after`) due to selection matching fragility
 - `replace '<old>' '<new>'` now also uses read-then-replace client-side, because direct hosted MCP replacement is not reliable for scoped edits

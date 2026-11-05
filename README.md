@@ -66,6 +66,8 @@ Reads return discussion/comment IDs, available author references, timestamps, an
 
 **v0.3.0 output change:** comment reads now return structured JSON instead of the old opaque payload. Creation/replies return the actual `id` and `discussion_id`; reactions return the provider's current state. `--raw` keeps the original MCP result. See [the command contract](cli-design.md#comments-and-discussions) for output examples and failure behavior.
 
+Comment reads currently omit reaction details upstream; missing details do not mean nobody reacted. Reaction commands change your own state and are not read-only inspection.
+
 ### Workspace-level
 
 ```
