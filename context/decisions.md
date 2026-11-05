@@ -47,3 +47,7 @@ Targeted replace requires a non-empty match string. The optional `--first` flag 
 Testing should favor command-level or end-to-end coverage when it can exercise real behavior without a large harness. Unit tests are reserved for logic that is hard, slow, or fragile to reach through command execution. Avoid overlapping tests that assert the same behavior at multiple layers unless the lower-level test covers important edge cases.
 
 Line count is a resource. New seams, helpers, comments, and tests should pay for themselves in clarity, correctness, or maintainability.
+
+## 2026-11-05: Model discussions and comments as explicit CLI resources
+
+Discussion reads/replies use `nt discussion <target> <verb>`; own-account reactions use `nt comment <id> react|unreact`. Infer the required page from a `discussion://` URL, and require an explicit page for a bare discussion ID. This keeps targets explicit within the existing resource-first interface. Structured comment output retains incomplete-result metadata and continuation cursors. nt remains stateless; conversation routing and deduplication belong to its caller. See [the scoped design](comments.md).
