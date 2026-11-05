@@ -38,7 +38,7 @@ func (r *ToolResult) TextContent() string {
 
 // withSession connects to the Notion MCP server and calls fn with the session.
 // The session is closed after fn returns.
-func withSession(ctx context.Context, accessToken string, fn func(*sdkmcp.ClientSession) error) error {
+func withSession(ctx context.Context, accessToken string, fn func(context.Context, *sdkmcp.ClientSession) error) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
@@ -58,14 +58,14 @@ func withSession(ctx context.Context, accessToken string, fn func(*sdkmcp.Client
 	}
 	defer session.Close()
 
-	return fn(session)
+	return fn(ctx, session)
 }
 
 // CallTool connects to the Notion MCP server, calls the named tool with the
 // given arguments, and returns the result.
 func CallTool(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, error) {
 	var tr *ToolResult
-	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+	err := withSession(ctx, accessToken, func(ctx context.Context, session *sdkmcp.ClientSession) error {
 		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
 			Name:      toolName,
 			Arguments: args,
@@ -83,7 +83,7 @@ func CallTool(ctx context.Context, accessToken, toolName string, args map[string
 func CallToolRaw(ctx context.Context, accessToken, toolName string, args map[string]any) (*ToolResult, json.RawMessage, error) {
 	var tr *ToolResult
 	var raw json.RawMessage
-	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+	err := withSession(ctx, accessToken, func(ctx context.Context, session *sdkmcp.ClientSession) error {
 		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
 			Name:      toolName,
 			Arguments: args,
@@ -118,7 +118,7 @@ type ToolDefinition struct {
 // Discovery has a one-minute deadline and fails instead of returning a partial list.
 func ListTools(ctx context.Context, accessToken string) ([]ToolDefinition, error) {
 	tools := []ToolDefinition{}
-	err := withSession(ctx, accessToken, func(session *sdkmcp.ClientSession) error {
+	err := withSession(ctx, accessToken, func(ctx context.Context, session *sdkmcp.ClientSession) error {
 		for tool, err := range session.Tools(ctx, nil) {
 			if err != nil {
 				return fmt.Errorf("listing tools: %w", err)

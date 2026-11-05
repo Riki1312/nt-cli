@@ -48,7 +48,62 @@ func AuthError(msg string) *CLIError {
 
 // ToolError maps MCP tool failure text to stable CLI error codes.
 func ToolError(msg string) *CLIError {
-	return classifyMessage(msg, ExitError, "TOOL_ERROR")
+	// Hosted API errors can include quoted page content. Prefer explicit status
+	// and code over words such as "not found" in a selection error or document.
+	var response struct {
+		Code    string `json:"code"`
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Body    string `json:"body"`
+	}
+	if json.Unmarshal([]byte(msg), &response) != nil || response.Code == "" && response.Status == 0 {
+		return classifyMessage(msg, ExitError, "TOOL_ERROR")
+	}
+
+	if response.Message == "" && response.Body != "" {
+		var body struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal([]byte(response.Body), &body) == nil {
+			response.Message = body.Message
+		}
+	}
+	message := response.Message
+	if message == "" {
+		message = msg
+	}
+
+	status := response.Status
+	if status == 0 {
+		switch response.Code {
+		case "validation_error", "invalid_input":
+			status = 400
+		case "unauthorized":
+			status = 401
+		case "restricted_resource", "permission_denied":
+			status = 403
+		case "object_not_found":
+			status = 404
+		case "rate_limited":
+			status = 429
+		}
+	}
+	switch status {
+	case 400:
+		return NewError(ExitError, "INVALID_ARGUMENT", message)
+	case 401:
+		return AuthError(message)
+	case 403:
+		return NewError(ExitPermission, "PERMISSION_DENIED", message)
+	case 404:
+		return NewError(ExitNotFound, "NOT_FOUND", message)
+	case 429:
+		err := NewError(ExitRateLimited, "RATE_LIMITED", message)
+		err.RetryAfter = parseRetryAfter(msg)
+		return err
+	default:
+		return NewError(ExitError, "TOOL_ERROR", message)
+	}
 }
 
 // ErrorFrom maps an arbitrary error to a structured CLI error.
