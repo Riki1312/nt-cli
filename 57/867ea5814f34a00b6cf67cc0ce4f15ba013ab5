@@ -1,0 +1,13 @@
+context/sessions/2026-11-05.md
+  ai_agent 1,3,5,7,9,11,13-23
+context/current.md
+  ai_agent 3,5,7,9-11
+context/decisions.md
+  ai_agent 54-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "57867ea5814f34a00b6cf67cc0ce4f15ba013ab5",
+  "prompts": {}
+}
