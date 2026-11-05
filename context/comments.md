@@ -21,7 +21,7 @@ nt comment COMMENT_ID unreact '👀'
 nt tools TOOL_NAME
 ```
 
-A discussion URL contains page, block, and discussion identifiers. Infer the page from that URL; require `--page` for a bare discussion ID. Reject conflicting targets and irrelevant flags before authentication or network calls. Text arguments accept `-` for stdin. Markdown content uses the provider's supported inline formatting and mention syntax.
+A discussion URL contains page, block, and discussion identifiers. Infer the page from that URL; `--page` is only valid for a bare discussion ID. Reject conflicting targets and irrelevant flags before authentication or network calls. Text arguments accept `-` for stdin and preserve their UTF-8 content, with a 1 MiB client limit. Markdown content uses the provider's supported inline formatting and mention syntax.
 
 `--select` passes Notion's native `selection_with_ellipsis` selector. A unique match within one block creates an inline highlight; otherwise Notion can attach the comment to the block where the match starts. No match fails. The CLI adds no fuzzy matching or automatic page-level fallback. Exact selected-range behavior requires live acceptance.
 

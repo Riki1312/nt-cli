@@ -31,6 +31,8 @@ Content arguments accept "-" to read from stdin.`,
 	root.AddCommand(newSearchCmd(a))
 	root.AddCommand(newPageCmd(a))
 	root.AddCommand(newDBCmd(a))
+	root.AddCommand(newDiscussionCmd(a))
+	root.AddCommand(newCommentCmd(a))
 	root.AddCommand(newCreateCmd(a))
 	root.AddCommand(newWhoamiCmd(a))
 	root.AddCommand(newUsersCmd(a))

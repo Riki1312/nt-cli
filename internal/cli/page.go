@@ -24,13 +24,20 @@ Verbs:
   create      Create a child page (--title required)
   move        Move page to a new parent (--to required)
   duplicate   Duplicate the page
-  comments    List comments on the page
-  comment     Add a comment to the page (text argument)`,
+  comments    Read comments, including resolved threads with --include-resolved
+  comment     Add a Markdown comment; --select targets page content`,
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pageID := args[0]
 			verb := args[1]
 			rest := args[2:]
+
+			if cmd.Flags().Changed("select") && verb != "comment" {
+				return fmt.Errorf("--select is not valid for %s", verb)
+			}
+			if cmd.Flags().Changed("include-resolved") && verb != "comments" {
+				return fmt.Errorf("--include-resolved is not valid for %s", verb)
+			}
 
 			switch verb {
 			case "read":
@@ -68,6 +75,8 @@ Verbs:
 			}
 		},
 	}
+	cmd.Flags().String("select", "", "unique Notion content selector: passage start...passage end")
+	cmd.Flags().Bool("include-resolved", false, "include resolved discussions when reading comments")
 	cmd.Flags().String("title", "", "title for create verb")
 	cmd.Flags().String("to", "", "target parent ID for move verb")
 	cmd.Flags().Bool("page", false, "replace entire page content")
@@ -392,60 +401,4 @@ func runPageDuplicate(cmd *cobra.Command, a app, pageID string) error {
 		return err
 	}
 	return a.print(transform.DuplicateResult(result, pageID))
-}
-
-func runPageComments(cmd *cobra.Command, a app, pageID string) error {
-	tok, err := a.ensureToken(cmd.Context())
-	if err != nil {
-		return output.AuthError(err.Error())
-	}
-
-	toolArgs := map[string]any{
-		"page_id":            pageID,
-		"include_all_blocks": true,
-	}
-
-	raw, _ := cmd.Flags().GetBool("raw")
-	if raw {
-		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-get-comments", toolArgs)
-	}
-
-	result, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-get-comments", toolArgs)
-	if err != nil {
-		return err
-	}
-	return a.print(transform.Comments(result))
-}
-
-func runPageComment(cmd *cobra.Command, a app, pageID string, args []string) error {
-	if err := requireExactArgs("comment", args, 1, "a text argument"); err != nil {
-		return err
-	}
-
-	tok, err := a.ensureToken(cmd.Context())
-	if err != nil {
-		return output.AuthError(err.Error())
-	}
-
-	text, err := readContentArg(args[0])
-	if err != nil {
-		return err
-	}
-
-	toolArgs := map[string]any{
-		"page_id": pageID,
-		"rich_text": []map[string]any{
-			{"text": map[string]any{"content": text}},
-		},
-	}
-
-	raw, _ := cmd.Flags().GetBool("raw")
-	if raw {
-		return callAndPrintRaw(cmd.Context(), a, tok.AccessToken, "notion-create-comment", toolArgs)
-	}
-
-	if _, err := callTool(cmd.Context(), a, tok.AccessToken, "notion-create-comment", toolArgs); err != nil {
-		return err
-	}
-	return a.print(map[string]any{"id": pageID, "ok": true})
 }
