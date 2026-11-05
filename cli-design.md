@@ -33,17 +33,17 @@ nt page <id> comment '<text>'                  # add a comment
 
 #### MCP mapping
 
-| CLI | MCP tool | Notes |
-|-----|----------|-------|
-| `read` | `notion-fetch` | Returns JSON with properties and Notion-flavored Markdown content |
-| `set` | `notion-update-page` | `command: "update_properties"`, flat params |
-| `replace` | `notion-fetch` + `notion-update-page` | With two args: read current content, replace client-side, then `command: "replace_content"` with merged markdown. Default replaces all matches; `--first` replaces only the first match. Targeted replace requires a non-empty `old` string. With `--page`: full content replacement (`new_str` only). `--first` is invalid with `--page`. Rejects writes that delete child pages unless `allow_deleting_content: true` |
-| `append` | Read via `notion-fetch`, then `notion-update-page` | Reads current content, concatenates, then uses `command: "replace_content"` |
-| `create` | `notion-create-pages` | `parent: {"page_id": "<id>"}` |
-| `move` | `notion-move-pages` | |
-| `duplicate` | `notion-duplicate-page` | Async; returns new page ID immediately but content populates later |
-| `comments` | `notion-get-comments` | Returns XML-formatted discussion threads |
-| `comment` | `notion-create-comment` | Uses `rich_text` format for content |
+| CLI         | MCP tool                                           | Notes                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read`      | `notion-fetch`                                     | Returns JSON with properties and Notion-flavored Markdown content                                                                                                                                                                                                                                                                                                                                                       |
+| `set`       | `notion-update-page`                               | `command: "update_properties"`, flat params                                                                                                                                                                                                                                                                                                                                                                             |
+| `replace`   | `notion-fetch` + `notion-update-page`              | With two args: read current content, replace client-side, then `command: "replace_content"` with merged markdown. Default replaces all matches; `--first` replaces only the first match. Targeted replace requires a non-empty `old` string. With `--page`: full content replacement (`new_str` only). `--first` is invalid with `--page`. Rejects writes that delete child pages unless `allow_deleting_content: true` |
+| `append`    | Read via `notion-fetch`, then `notion-update-page` | Reads current content, concatenates, then uses `command: "replace_content"`                                                                                                                                                                                                                                                                                                                                             |
+| `create`    | `notion-create-pages`                              | `parent: {"page_id": "<id>"}`                                                                                                                                                                                                                                                                                                                                                                                           |
+| `move`      | `notion-move-pages`                                |                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `duplicate` | `notion-duplicate-page`                            | Async; returns new page ID immediately but content populates later                                                                                                                                                                                                                                                                                                                                                      |
+| `comments`  | `notion-get-comments`                              | Returns XML-formatted discussion threads                                                                                                                                                                                                                                                                                                                                                                                |
+| `comment`   | `notion-create-comment`                            | Uses `rich_text` format for content                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Databases - `nt db <id> <verb>`
 
@@ -58,12 +58,12 @@ nt db <id> update [--title "..."] [--schema '<sql>']  # update database schema
 
 #### MCP mapping
 
-| CLI | MCP tool | Notes |
-|-----|----------|-------|
-| `read` | `notion-fetch` | Returns schema, SQLite DDL, templates, views |
-| `query` | `notion-query-data-sources` | SQL mode; use `_` as table name placeholder |
-| `create` | `notion-create-pages` | `parent: {"data_source_id": "<id>"}` |
-| `update` | `notion-update-data-source` | Uses SQL DDL statements for schema changes |
+| CLI      | MCP tool                    | Notes                                        |
+| -------- | --------------------------- | -------------------------------------------- |
+| `read`   | `notion-fetch`              | Returns schema, SQLite DDL, templates, views |
+| `query`  | `notion-query-data-sources` | SQL mode; use `_` as table name placeholder  |
+| `create` | `notion-create-pages`       | `parent: {"data_source_id": "<id>"}`         |
+| `update` | `notion-update-data-source` | Uses SQL DDL statements for schema changes   |
 
 ## Workspace Commands
 
@@ -79,13 +79,13 @@ nt teams                          # list teams/teamspaces
 
 #### MCP mapping
 
-| CLI | MCP tool |
-|-----|----------|
-| `search` | `notion-search` |
-| `create` | `notion-create-pages` (no parent) |
+| CLI      | MCP tool                               |
+| -------- | -------------------------------------- |
+| `search` | `notion-search`                        |
+| `create` | `notion-create-pages` (no parent)      |
 | `whoami` | `notion-get-users` (`user_id: "self"`) |
-| `users` | `notion-get-users` |
-| `teams` | `notion-get-teams` |
+| `users`  | `notion-get-users`                     |
+| `teams`  | `notion-get-teams`                     |
 
 ## Output Format
 
@@ -94,32 +94,50 @@ nt teams                          # list teams/teamspaces
 All commands output JSON to stdout. No exceptions. Content fields contain Notion-flavored Markdown as strings.
 
 **`nt search`** - array of results:
+
 ```json
 [
-  {"id": "abc123", "type": "page", "title": "Q1 Goals", "url": "https://notion.so/abc123"},
-  {"id": "def456", "type": "database", "title": "Tasks", "url": "https://notion.so/def456"}
+  {
+    "id": "abc123",
+    "type": "page",
+    "title": "Q1 Goals",
+    "url": "https://notion.so/abc123"
+  },
+  {
+    "id": "def456",
+    "type": "database",
+    "title": "Tasks",
+    "url": "https://notion.so/def456"
+  }
 ]
 ```
 
 **`nt page <id> read`** - single object:
+
 ```json
 {
   "id": "abc123",
   "title": "Q1 Goals",
   "url": "https://notion.so/abc123",
-  "properties": {"Status": "In Progress", "Assignee": "Alice", "Date": "2026-01-15"},
+  "properties": {
+    "Status": "In Progress",
+    "Assignee": "Alice",
+    "Date": "2026-01-15"
+  },
   "content": "## Overview\n\nOur Q1 goals are..."
 }
 ```
 
 **Write operations** (`set`, `replace`, `append`, `create`, `move`, etc.) - confirmation with the affected resource:
+
 ```json
-{"id": "abc123", "ok": true}
+{ "id": "abc123", "ok": true }
 ```
 
 **`create` operations** - return an array because the MCP tool can create multiple pages:
+
 ```json
-[{"id": "abc123", "url": "https://notion.so/abc123", "ok": true}]
+[{ "id": "abc123", "url": "https://notion.so/abc123", "ok": true }]
 ```
 
 ## Error Handling
@@ -127,10 +145,11 @@ All commands output JSON to stdout. No exceptions. Content fields contain Notion
 Errors go to **stderr** as JSON. Stdout remains clean for piping.
 
 ```json
-{"error": "page not found", "code": "NOT_FOUND"}
+{ "error": "page not found", "code": "NOT_FOUND" }
 ```
 
 Exit codes:
+
 - `0` - success
 - `1` - general error
 - `2` - authentication error (expired token, not logged in)
@@ -177,7 +196,6 @@ nt db <data-source-id> query "SELECT * FROM _ WHERE Status = ?" --params "In Pro
 
 ## Global Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag    | Description                                   |
+| ------- | --------------------------------------------- |
 | `--raw` | Print the raw MCP tool result (for debugging) |
-| `--verbose` | Print request/response details to stderr |

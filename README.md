@@ -20,7 +20,7 @@ nt db abc123 query "SELECT id FROM _ WHERE Status = 'Done'" | jq -r '.[].id' | x
 nt page src123 read | jq -r '.content' | nt page dst456 replace --page -
 ```
 
-No daemon. No SDK. Each invocation is a single HTTPS request to `mcp.notion.com`.
+Each invocation opens a bounded MCP session with `mcp.notion.com`, using the Go MCP SDK. No local daemon is needed.
 
 ## Commands
 
@@ -46,6 +46,7 @@ nt db <id> update [--title "..."]              # update database schema
 ```
 
 Notes:
+
 - targeted `replace` requires a non-empty `<old>` string
 - `--first` is valid only for targeted `replace`, not with `--page`
 
@@ -100,8 +101,18 @@ cd nt-cli
 make build    # build to bin/nt
 make test     # run tests
 make lint     # go vet
+make fmt      # Go formatting
+make check    # formatting, vet, race tests, and build
 make install  # go install
 ```
+
+For hosted-tool diagnostics, `nt tools` lists names and `nt tools TOOL_NAME` shows that tool's description and JSON input/output schemas. These are read-only discovery operations.
+
+### Releases
+
+CI runs `make check` on Go 1.24 and the pinned release toolchain. Tag releases wait for those checks, then build macOS/Linux archives for amd64/arm64 and update the existing Homebrew formula. GoReleaser and action revisions are pinned.
+
+The formula publisher remains supported by GoReleaser v2 but is deprecated upstream. A future cask migration changes installation and signing requirements and is separate from this release. `goreleaser check` currently reports that known deprecation; snapshot packaging must still pass before tagging.
 
 ## License
 

@@ -58,7 +58,7 @@ No sandbox to build. No SDK to maintain. No new security model. The agent writes
 
 **Composable over complete.** We don't need to cover every use case in the CLI itself. A small set of well-designed commands that compose with standard Unix tools is more powerful than a sprawling feature set. `nt search | jq | xargs nt fetch` should just work.
 
-**Fast per-invocation.** The CLI is a compiled Go binary. Each invocation is a single HTTPS request to Notion's hosted MCP server; no local process startup, no connection pooling, no daemon. Commands complete in the time it takes for the Notion API to respond, with negligible local overhead.
+**Fast per-invocation.** The CLI is a compiled Go binary. Each invocation opens one bounded MCP session with Notion's hosted server; no local process startup, no connection pooling, no daemon. Commands complete in the time it takes for the Notion API to respond, with negligible local overhead.
 
 **Progressive disclosure.** Simple things are simple (`nt search "meeting"`), complex things are possible (`nt db <data-source-id> query "SELECT * FROM _ WHERE Status = ?" --params "Done"`). SQL handles richer database queries without inventing a Notion-specific query language.
 

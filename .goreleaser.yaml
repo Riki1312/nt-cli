@@ -4,11 +4,14 @@ project_name: nt
 
 builds:
   - main: ./cmd/nt
+    env:
+      - CGO_ENABLED=0
     binary: nt
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
       - -X main.commit={{.ShortCommit}}
+      - -X github.com/Riki1312/nt-cli/internal/mcp.clientVersion={{.Version}}
     goos:
       - darwin
       - linux
@@ -17,9 +20,11 @@ builds:
       - arm64
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 
+# Keep the existing macOS/Linux formula; cask migration changes installation behavior.
+# Supported by the pinned GoReleaser v2, with a known deprecation warning.
 brews:
   - repository:
       owner: Riki1312

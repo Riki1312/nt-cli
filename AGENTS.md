@@ -6,7 +6,7 @@ A thin CLI that wraps Notion's hosted MCP server, designed for AI agents to inte
 nt CLI  --HTTPS/MCP Streamable HTTP-->  mcp.notion.com (Notion-hosted)
 ```
 
-Each invocation is a stateless HTTPS request. No daemon, no local MCP process. OAuth tokens stored in `~/.config/nt/`.
+Each invocation opens a bounded MCP session. No daemon, no local MCP process. OAuth tokens stored in `~/.config/nt/`.
 
 ## Design Documents
 
