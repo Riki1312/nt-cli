@@ -1,0 +1,21 @@
+internal/auth/oauth.go
+  s_e0c5ff9fbb4491::t_d04742e1d3704e 285,287-289
+context/sessions/2026-11-05.md
+  s_e0c5ff9fbb4491::t_d04742e1d3704e 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "9ad303c36d4660fd63836a06e21360835430ead7",
+  "prompts": {},
+  "sessions": {
+    "s_e0c5ff9fbb4491": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a254-71ba-7720-be17-f3da2676f26d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Riccardo <riki.brero@gmail.com>"
+    }
+  }
+}
